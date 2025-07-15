@@ -4,69 +4,68 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from "uuid"
 
-const BLOG_BUCKET_NAME = "blog-bucket" // Ensure this matches your Supabase bucket name for blog images
+const BLOG_BUCKET_NAME = "blog-bucket" // <-- your Storage bucket
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
 
-// Helper to upload image and get public URL for blog posts
+/* -------------------------------- Helpers -------------------------------- */
+
 async function uploadBlogImageInternal(file: File): Promise<string | null> {
   if (!file || file.size === 0) return null
 
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${uuidv4()}.${fileExt}`
-  const filePath = `${fileName}`
-
-  const supabase = createClient() // This uses the server-side client with service role key
-  const { data, error } = await supabase.storage.from(BLOG_BUCKET_NAME).upload(filePath, file, {
-    cacheControl: "3600",
-    upsert: false,
-  })
-
-  if (error) {
-    console.error("Error uploading blog image:", error)
-    throw new Error(`Failed to upload blog image: ${error.message}`)
+  if (file.size > MAX_IMAGE_SIZE) {
+    throw new Error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Please upload files under 5 MB.`)
   }
 
-  const { data: publicUrlData } = supabase.storage.from(BLOG_BUCKET_NAME).getPublicUrl(data.path)
-  return publicUrlData.publicUrl
+  const ext = file.name.split(".").pop() ?? "png"
+  const fileName = `${uuidv4()}.${ext}`
+
+  const supabase = createClient() // service-role key on the server
+  try {
+    const { data, error } = await supabase.storage.from(BLOG_BUCKET_NAME).upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream",
+    })
+
+    if (error) throw error
+
+    const { data: publicUrl } = supabase.storage.from(BLOG_BUCKET_NAME).getPublicUrl(data.path)
+
+    return publicUrl.publicUrl
+  } catch (err: any) {
+    // Supabase sometimes returns HTML (e.g. 413) → JSON parse fails
+    const friendly =
+      err?.message?.includes("413") || err?.status === 413 ? "Image too large for the Storage plan limit." : err.message
+
+    throw new Error(`Failed to upload blog image: ${friendly}`)
+  }
 }
 
-// Helper to delete image from storage for blog posts
-async function deleteBlogImageInternal(imageUrl: string | undefined) {
-  const supabase = createClient() // This uses the server-side client with service role key
+async function deleteBlogImageInternal(imageUrl?: string) {
   if (!imageUrl) return
+  const parts = imageUrl.split("/")
+  const idx = parts.indexOf(BLOG_BUCKET_NAME)
+  if (idx === -1 || idx + 1 >= parts.length) return
 
-  const urlParts = imageUrl.split("/")
-  const bucketIndex = urlParts.indexOf(BLOG_BUCKET_NAME)
-  if (bucketIndex === -1 || bucketIndex + 1 >= urlParts.length) {
-    console.warn("Could not parse image path from URL for deletion:", imageUrl)
-    return
-  }
-  const imagePath = urlParts.slice(bucketIndex + 1).join("/")
-
-  if (imagePath) {
-    const { error } = await supabase.storage.from(BLOG_BUCKET_NAME).remove([imagePath])
-    if (error) {
-      console.warn("Failed to remove old blog image from storage:", error)
-    }
-  }
+  const supabase = createClient()
+  await supabase.storage.from(BLOG_BUCKET_NAME).remove([parts.slice(idx + 1).join("/")])
 }
+
+/* --------------------------- Blog CRUD actions --------------------------- */
 
 export async function getBlogPosts() {
   const supabase = createClient()
   const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
-  if (error) {
-    console.error("Error fetching blog posts:", error)
-    throw new Error(`Failed to fetch blog posts: ${error.message}`)
-  }
+
+  if (error) throw new Error(`Failed to fetch blog posts: ${error.message}`)
   return data
 }
 
 export async function getBlogPostById(id: string) {
   const supabase = createClient()
   const { data, error } = await supabase.from("blog_posts").select("*").eq("id", id).single()
-  if (error) {
-    console.error(`Error fetching blog post with ID ${id}:`, error)
-    return null
-  }
+
+  if (error) return null
   return data
 }
 
@@ -76,34 +75,26 @@ export async function addBlogPost(formData: FormData) {
   const title = String(formData.get("title"))
   const author = String(formData.get("author") ?? "")
   const content = String(formData.get("content") ?? "")
-  const is_published = formData.get("is_published") === "on" // Check if checkbox is checked
+  const is_published = formData.get("isPublished") === "on"
 
+  /* ---------- image ---------- */
   let image_url: string | null = null
-  const imageFile = formData.get("image") as File | null
-  if (imageFile && imageFile.size > 0) {
-    try {
-      image_url = await uploadBlogImageInternal(imageFile)
-    } catch (uploadError) {
-      console.error("Error during blog image upload:", uploadError)
-      return { success: false, error: `Image upload failed: ${(uploadError as Error).message}` }
-    }
+  const file = formData.get("image") as File | null
+  if (file?.size) {
+    image_url = await uploadBlogImageInternal(file)
   }
 
   const { data, error } = await supabase
     .from("blog_posts")
     .insert({ title, author, content, image_url, is_published })
-    .select() // Select the inserted data to return it
-    .single() // Expect a single row back
+    .select()
+    .single()
 
-  if (error) {
-    console.error("Error adding blog post:", error)
-    return { success: false, error: `Failed to add blog post: ${error.message}` }
-  }
+  if (error) throw new Error(`Failed to add blog post: ${error.message}`)
 
   revalidatePath("/admin/blog")
-  if (is_published) {
-    revalidatePath("/blog") // Revalidate main blog page if new post is published
-  }
+  if (is_published) revalidatePath("/blog")
+
   return { success: true, data }
 }
 
@@ -113,28 +104,15 @@ export async function updateBlogPost(id: string, formData: FormData) {
   const title = String(formData.get("title"))
   const author = String(formData.get("author") ?? "")
   const content = String(formData.get("content") ?? "")
-  const is_published = formData.get("is_published") === "on"
-  const currentImageUrl = String(formData.get("currentImageUrl") ?? "")
+  const is_published = formData.get("isPublished") === "on"
+  const currentUrl = String(formData.get("currentImageUrl") ?? "")
 
-  let image_url: string | null = currentImageUrl
-  const imageFile = formData.get("image") as File | null
+  let image_url: string | null = currentUrl
+  const file = formData.get("image") as File | null
 
-  if (imageFile && imageFile.size > 0) {
-    if (image_url) {
-      await deleteBlogImageInternal(image_url) // Delete old image if new one is uploaded
-    }
-    try {
-      image_url = await uploadBlogImageInternal(imageFile)
-    } catch (uploadError) {
-      console.error("Error during blog image update upload:", uploadError)
-      return { success: false, error: `Image update failed: ${(uploadError as Error).message}` }
-    }
-  } else if (formData.get("removeImage") === "on") {
-    // Handle explicit image removal
-    if (image_url) {
-      await deleteBlogImageInternal(image_url)
-    }
-    image_url = null
+  if (file?.size) {
+    if (image_url) await deleteBlogImageInternal(image_url)
+    image_url = await uploadBlogImageInternal(file)
   }
 
   const { data, error } = await supabase
@@ -144,29 +122,24 @@ export async function updateBlogPost(id: string, formData: FormData) {
     .select()
     .single()
 
-  if (error) {
-    console.error("Error updating blog post:", error)
-    return { success: false, error: `Failed to update blog post: ${error.message}` }
-  }
+  if (error) throw new Error(`Failed to update blog post: ${error.message}`)
 
   revalidatePath("/admin/blog")
-  revalidatePath(`/blog/${id}`) // Revalidate the specific blog post page
-  revalidatePath("/blog") // Revalidate the main blog list page
+  revalidatePath(`/blog/${id}`)
+  revalidatePath("/blog")
+
   return { success: true, data }
 }
 
 export async function deleteBlogPost(id: string, imageUrl?: string) {
   const supabase = createClient()
-  if (imageUrl) {
-    await deleteBlogImageInternal(imageUrl)
-  }
+  if (imageUrl) await deleteBlogImageInternal(imageUrl)
+
   const { error } = await supabase.from("blog_posts").delete().eq("id", id)
-  if (error) {
-    console.error("Error deleting blog post:", error)
-    throw new Error(`Failed to delete blog post: ${error.message}`)
-  }
+  if (error) throw new Error(`Failed to delete blog post: ${error.message}`)
+
   revalidatePath("/admin/blog")
-  revalidatePath(`/blog/${id}`) // Revalidate the specific blog post page
-  revalidatePath("/blog") // Revalidate the main blog list page
+  revalidatePath(`/blog/${id}`)
+  revalidatePath("/blog")
   return { success: true }
 }
