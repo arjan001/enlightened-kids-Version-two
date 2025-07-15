@@ -1,7 +1,6 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,12 +13,16 @@ import Image from "next/image"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import { Textarea } from "@/components/ui/textarea" // Import Textarea
+import { useEffect, useState } from "react" // Import useState
+import { Textarea } from "@/components/ui/textarea"
+import { PaymentModal } from "@/components/payment-modal" // Import PaymentModal
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart()
   const router = useRouter()
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa") // Default to mpesa
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -47,6 +50,10 @@ export default function CheckoutPage() {
 
   const handleRemoveItem = (id: string) => {
     dispatch({ type: "REMOVE_ITEM", payload: id })
+  }
+
+  const handleProceedToPayment = () => {
+    setIsPaymentModalOpen(true)
   }
 
   // If cart is empty, display a loading state or null while redirecting
@@ -156,7 +163,12 @@ export default function CheckoutPage() {
                   <CardTitle className="text-xl font-semibold text-gray-800">Payment Method</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <RadioGroup defaultValue="mpesa" className="grid gap-4">
+                  <RadioGroup
+                    defaultValue="mpesa"
+                    value={selectedPaymentMethod || "mpesa"} // Ensure a default value is always selected
+                    onValueChange={(value: "mpesa" | "paypal") => setSelectedPaymentMethod(value)}
+                    className="grid gap-4"
+                  >
                     <Label
                       htmlFor="mpesa"
                       className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-orange-500 cursor-pointer"
@@ -185,7 +197,8 @@ export default function CheckoutPage() {
                   </RadioGroup>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={state.items.length === 0}
+                    disabled={state.items.length === 0 || !selectedPaymentMethod}
+                    onClick={handleProceedToPayment}
                   >
                     Complete Payment - {formatPrice(total)}
                   </Button>
@@ -260,6 +273,14 @@ export default function CheckoutPage() {
       </main>
 
       <Footer />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        paymentMethod={selectedPaymentMethod}
+        totalAmount={total}
+      />
     </div>
   )
 }
