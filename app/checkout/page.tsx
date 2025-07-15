@@ -13,16 +13,26 @@ import Image from "next/image"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react" // Import useState
+import { useEffect, useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
-import { PaymentModal } from "@/components/payment-modal" // Import PaymentModal
+import { PaymentModal } from "@/components/payment-modal"
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart()
   const router = useRouter()
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa") // Default to mpesa
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa")
+
+  // State for form fields
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [address, setAddress] = useState("")
+  const [city, setCity] = useState("")
+  const [postalCode, setPostalCode] = useState("")
+  const [orderNotes, setOrderNotes] = useState("") // For optional field
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -52,8 +62,27 @@ export default function CheckoutPage() {
     dispatch({ type: "REMOVE_ITEM", payload: id })
   }
 
+  // Validation logic
+  const isFormValid = () => {
+    return (
+      firstName.trim() !== "" &&
+      lastName.trim() !== "" &&
+      email.trim() !== "" &&
+      phone.trim() !== "" &&
+      address.trim() !== "" &&
+      city.trim() !== "" &&
+      postalCode.trim() !== "" &&
+      state.items.length > 0 // Ensure cart is not empty
+    )
+  }
+
   const handleProceedToPayment = () => {
-    setIsPaymentModalOpen(true)
+    if (isFormValid()) {
+      setIsPaymentModalOpen(true)
+    } else {
+      // Optionally, add a toast notification or visual feedback for incomplete fields
+      alert("Please fill in all required contact and delivery information.")
+    }
   }
 
   // If cart is empty, display a loading state or null while redirecting
@@ -165,7 +194,7 @@ export default function CheckoutPage() {
                 <CardContent className="p-0">
                   <RadioGroup
                     defaultValue="mpesa"
-                    value={selectedPaymentMethod || "mpesa"} // Ensure a default value is always selected
+                    value={selectedPaymentMethod || "mpesa"}
                     onValueChange={(value: "mpesa" | "paypal") => setSelectedPaymentMethod(value)}
                     className="grid gap-4"
                   >
@@ -197,7 +226,7 @@ export default function CheckoutPage() {
                   </RadioGroup>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={state.items.length === 0 || !selectedPaymentMethod}
+                    disabled={!isFormValid() || !selectedPaymentMethod} // Disable if form is not valid or no method selected
                     onClick={handleProceedToPayment}
                   >
                     Complete Payment - {formatPrice(total)}
@@ -217,19 +246,45 @@ export default function CheckoutPage() {
                   <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="Enter your first name" required />
+                      <Input
+                        id="firstName"
+                        placeholder="Enter your first name"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Enter your last name" required />
+                      <Input
+                        id="lastName"
+                        placeholder="Enter your last name"
+                        required
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" placeholder="Enter your email address" required />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" type="tel" placeholder="Enter your phone number" required />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
                     </div>
                   </form>
                 </CardContent>
@@ -244,15 +299,33 @@ export default function CheckoutPage() {
                   <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="address">Street Address</Label>
-                      <Input id="address" placeholder="Enter your street address" required />
+                      <Input
+                        id="address"
+                        placeholder="Enter your street address"
+                        required
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input id="city" placeholder="Enter your city" required />
+                      <Input
+                        id="city"
+                        placeholder="Enter your city"
+                        required
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input id="postalCode" placeholder="Enter postal code" required />
+                      <Input
+                        id="postalCode"
+                        placeholder="Enter postal code"
+                        required
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                      />
                     </div>
                   </form>
                 </CardContent>
@@ -264,7 +337,12 @@ export default function CheckoutPage() {
                   <CardTitle className="text-xl font-semibold text-gray-800">Order Notes (Optional)</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Textarea placeholder="Any special instructions for your order..." className="min-h-[100px]" />
+                  <Textarea
+                    placeholder="Any special instructions for your order..."
+                    className="min-h-[100px]"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                  />
                 </CardContent>
               </Card>
             </div>
