@@ -42,57 +42,7 @@ export default function BookletPage() {
         </div>
       </section>
 
-      {/* Booklet Details and Download Form */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-8 md:gap-12 max-w-6xl mx-auto items-center">
-            {/* Booklet Image */}
-            <div className="lg:w-1/2">
-              <Card className="p-4 md:p-6">
-                <Image
-                  src="/images/booklet.png"
-                  alt="Empowerment Booklet Cover"
-                  width={400}
-                  height={550}
-                  className="w-full max-w-sm mx-auto lg:max-w-none rounded-lg"
-                />
-              </Card>
-            </div>
 
-            {/* Download Form */}
-            <div className="lg:w-1/2 px-4 lg:px-0">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Get Your Free Booklet Today!</h2>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Simply fill out the form below to receive your complimentary copy of the "Enlightened Kids Empowerment
-                Booklet" directly to your inbox.
-              </p>
-
-              <form className="grid gap-4">
-                <div>
-                  <Label htmlFor="name" className="sr-only">
-                    Name
-                  </Label>
-                  <Input id="name" placeholder="Your Name" type="text" required />
-                </div>
-                <div>
-                  <Label htmlFor="email" className="sr-only">
-                    Email
-                  </Label>
-                  <Input id="email" placeholder="Your Email Address" type="email" required />
-                </div>
-                <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white py-3">
-                  Download Now
-                </Button>
-              </form>
-
-              <div className="mt-6 text-sm text-gray-600 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span>No spam, just valuable content for your child's growth.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* What's Inside Section */}
       <section className="py-12 bg-gray-50">
@@ -141,37 +91,6 @@ export default function BookletPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-12">What Parents Are Saying</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-6">
-              <CardContent className="text-gray-700 italic mb-4">
-                "This booklet has been a game-changer for my daughter! She loves the activities and it's helped her
-                express her emotions so much better."
-              </CardContent>
-              <p className="font-semibold text-gray-800">- Aisha K.</p>
-              <p className="text-sm text-gray-500">Parent, Nairobi</p>
-            </Card>
-            <Card className="p-6">
-              <CardContent className="text-gray-700 italic mb-4">
-                "Finally, resources that truly resonate with our cultural background. My son feels seen and empowered."
-              </CardContent>
-              <p className="font-semibold text-gray-800">- David O.</p>
-              <p className="text-sm text-gray-500">Parent, Kisumu</p>
-            </Card>
-            <Card className="p-6">
-              <CardContent className="text-gray-700 italic mb-4">
-                "Simple, effective, and beautifully designed. A must-have for any parent looking to foster confidence."
-              </CardContent>
-              <p className="font-semibold text-gray-800">- Sarah M.</p>
-              <p className="text-sm text-gray-500">Parent, Mombasa</p>
-            </Card>
           </div>
         </div>
       </section>
