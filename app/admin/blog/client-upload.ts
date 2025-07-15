@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client" // Assuming you have a client-side Supabase client
 
-const BLOG_BUCKET_NAME = "blog-images" // Ensure this matches your Supabase bucket name for blog images
+const BLOG_BUCKET_NAME = "blog-bucket" // Corrected: Ensure this matches your Supabase bucket name for blog images
 
 export async function uploadBlogImage(file: File) {
   try {
