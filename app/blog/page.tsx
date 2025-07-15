@@ -9,6 +9,7 @@ import Footer from "@/components/footer"
 import { useState, useEffect, useTransition } from "react"
 import { getBlogPosts } from "../admin/blog/actions"
 import { useToast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge" // Import Badge component
 
 interface BlogPost {
   id: string
@@ -50,6 +51,20 @@ export default function BlogPage() {
     return new Date(dateString).toLocaleDateString(undefined, options)
   }
 
+  // Simple function to estimate reading time (150 words per minute)
+  const estimateReadingTime = (content: string) => {
+    const wordsPerMinute = 150
+    const wordCount = content.split(/\s+/).length
+    const minutes = Math.ceil(wordCount / wordsPerMinute)
+    return `${minutes} min read`
+  }
+
+  // Placeholder for categories - you might want to add a 'category' field to your BlogPost interface and database
+  const getCategoryBadge = (index: number) => {
+    const categories = ["Parenting", "Storytelling", "Self-Worth", "Education", "Culture"]
+    return categories[index % categories.length]
+  }
+
   return (
     <div className="min-h-screen bg-white pt-16">
       <Header />
@@ -73,8 +88,11 @@ export default function BlogPage() {
             <div className="text-center text-gray-600">No published blog posts found.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {blogPosts.map((post) => (
-                <Card key={post.id} className="overflow-hidden flex flex-col">
+              {blogPosts.map((post, index) => (
+                <Card
+                  key={post.id}
+                  className="overflow-hidden flex flex-col rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                >
                   {post.image_url && (
                     <div className="relative h-48 w-full">
                       <Image
@@ -85,21 +103,28 @@ export default function BlogPage() {
                         className="rounded-t-lg"
                         unoptimized={post.image_url.includes("blob.v0.dev")} // Skip optimization for blob URLs in preview
                       />
+                      <Badge className="absolute top-4 left-4 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                        {getCategoryBadge(index)}
+                      </Badge>
                     </div>
                   )}
-                  <CardHeader>
-                    <CardTitle className="text-xl font-bold">{post.title}</CardTitle>
-                    <CardDescription className="text-sm text-gray-500">
-                      By {post.author} on {formatDate(post.created_at)}
-                    </CardDescription>
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-xl font-bold leading-tight mb-1">{post.title}</CardTitle>
+                    <CardDescription className="text-sm text-gray-500">{formatDate(post.created_at)}</CardDescription>
                   </CardHeader>
-                  <CardContent className="flex-grow">
-                    <p className="text-gray-700 mb-4 line-clamp-3">{post.content}</p>
-                    <Link href={`/blog/${post.id}`} passHref>
-                      <Button variant="link" className="p-0 h-auto text-orange-500 hover:text-orange-600">
-                        Read More
-                      </Button>
-                    </Link>
+                  <CardContent className="flex-grow p-4 pt-0">
+                    <p className="text-gray-700 mb-4 line-clamp-3 text-sm">{post.content}</p>
+                    <div className="flex items-center justify-between">
+                      <Link href={`/blog/${post.id}`} passHref>
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-orange-500 hover:text-orange-600 font-semibold"
+                        >
+                          Read More
+                        </Button>
+                      </Link>
+                      <span className="text-sm text-gray-500">{estimateReadingTime(post.content)}</span>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
