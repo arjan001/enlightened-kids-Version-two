@@ -24,15 +24,81 @@ export default function CheckoutPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa")
 
-  // State for form fields
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
-  const [address, setAddress] = useState("")
-  const [city, setCity] = useState("")
-  const [postalCode, setPostalCode] = useState("")
-  const [orderNotes, setOrderNotes] = useState("") // For optional field
+  // State for form fields, initialized from localStorage
+  const [firstName, setFirstName] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutFirstName") || ""
+    return ""
+  })
+  const [lastName, setLastName] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutLastName") || ""
+    return ""
+  })
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutEmail") || ""
+    return ""
+  })
+  const [phone, setPhone] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutPhone") || ""
+    return ""
+  })
+  const [address, setAddress] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutAddress") || ""
+    return ""
+  })
+  const [city, setCity] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutCity") || ""
+    return ""
+  })
+  const [postalCode, setPostalCode] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutPostalCode") || ""
+    return ""
+  })
+  const [orderNotes, setOrderNotes] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("checkoutOrderNotes") || ""
+    return ""
+  })
+
+  // Persist form fields to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutFirstName", firstName)
+    }
+  }, [firstName])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutLastName", lastName)
+    }
+  }, [lastName])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutEmail", email)
+    }
+  }, [email])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutPhone", phone)
+    }
+  }, [phone])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutAddress", address)
+    }
+  }, [address])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutCity", city)
+    }
+  }, [city])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutPostalCode", postalCode)
+    }
+  }, [postalCode])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("checkoutOrderNotes", orderNotes)
+    }
+  }, [orderNotes])
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -80,7 +146,6 @@ export default function CheckoutPage() {
     if (isFormValid()) {
       setIsPaymentModalOpen(true)
     } else {
-      // Optionally, add a toast notification or visual feedback for incomplete fields
       alert("Please fill in all required contact and delivery information.")
     }
   }
@@ -226,7 +291,7 @@ export default function CheckoutPage() {
                   </RadioGroup>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={!isFormValid() || !selectedPaymentMethod} // Disable if form is not valid or no method selected
+                    disabled={!isFormValid() || !selectedPaymentMethod}
                     onClick={handleProceedToPayment}
                   >
                     Complete Payment - {formatPrice(total)}
