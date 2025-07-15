@@ -120,19 +120,7 @@ export default function BookletPage() {
                 Download Instantly
               </Link>
             </Button>
-            <Button
-              asChild
-              className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 text-lg rounded-lg shadow-md"
-            >
-              <Link
-                href="https://wa.me/yourphonenumber?text=I%20would%20like%20to%20request%20the%20e-Booklet."
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Request Via Whatsapp
-              </Link>
-            </Button>
+
           </div>
         </div>
       </main>
