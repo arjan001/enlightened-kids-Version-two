@@ -14,14 +14,15 @@ interface PaymentModalProps {
   isOpen: boolean
   onClose: () => void
   paymentMethod: "mpesa" | "paypal" | null
+  totalAmount: number
 }
 
-export function PaymentModal({ isOpen, onClose, paymentMethod }: PaymentModalProps) {
+export function PaymentModal({ isOpen, onClose, paymentMethod, totalAmount }: PaymentModalProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [email, setEmail] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const router = useRouter()
-  const { state } = useCart()
+  const { dispatch } = useCart() // Only need dispatch to clear cart
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -39,7 +40,8 @@ export function PaymentModal({ isOpen, onClose, paymentMethod }: PaymentModalPro
 
     setIsProcessing(false)
     onClose()
-    router.push("/booklet")
+    dispatch({ type: "CLEAR_CART" }) // Clear cart after successful payment simulation
+    router.push("/booklet") // Redirect to a confirmation page or booklet
   }
 
   const handleClose = () => {
@@ -81,7 +83,7 @@ export function PaymentModal({ isOpen, onClose, paymentMethod }: PaymentModalPro
           {/* Amount Display */}
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <p className="text-sm text-gray-600">Total Amount</p>
-            <p className="text-2xl font-bold text-green-600">{formatPrice(state.total)}</p>
+            <p className="text-2xl font-bold text-green-600">{formatPrice(totalAmount)}</p>
           </div>
 
           {/* Payment Form */}
@@ -127,7 +129,7 @@ export function PaymentModal({ isOpen, onClose, paymentMethod }: PaymentModalPro
                 Processing Payment...
               </>
             ) : (
-              `Pay ${formatPrice(state.total)}`
+              `Pay ${formatPrice(totalAmount)}`
             )}
           </Button>
 
