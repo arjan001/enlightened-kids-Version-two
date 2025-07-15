@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Search, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { searchProducts } from "@/app/admin/actions" // Import the new server action
 
-interface Book {
+// Define a type for the product data, matching the database schema
+interface Product {
   id: string
   title: string
   author: string
   price: number
-  image: string
+  image_url: string | null // Use image_url to match database
+  description: string
+  stock: number
   category: string
+  created_at: string
 }
 
 interface SearchModalProps {
@@ -22,75 +27,31 @@ interface SearchModalProps {
   onClose: () => void
 }
 
-const sampleBooks: Book[] = [
-  {
-    id: "1",
-    title: "The Adventures of Little Kesi",
-    author: "Mary Wanjiku",
-    price: 850,
-    image: "/placeholder.svg?height=120&width=90",
-    category: "Adventure",
-  },
-  {
-    id: "2",
-    title: "Safari Stories",
-    author: "John Kamau",
-    price: 750,
-    image: "/placeholder.svg?height=120&width=90",
-    category: "Nature",
-  },
-  {
-    id: "3",
-    title: "Counting with Animals",
-    author: "Grace Njeri",
-    price: 650,
-    image: "/placeholder.svg?height=120&width=90",
-    category: "Educational",
-  },
-  {
-    id: "4",
-    title: "The Magic Baobab Tree",
-    author: "Peter Mwangi",
-    price: 900,
-    image: "/placeholder.svg?height=120&width=90",
-    category: "Fantasy",
-  },
-  {
-    id: "5",
-    title: "Colors of Kenya",
-    author: "Sarah Akinyi",
-    price: 700,
-    image: "/placeholder.svg?height=120&width=90",
-    category: "Educational",
-  },
-]
-
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<Book[]>([])
+  const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setSearchResults([])
-      return
-    }
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim() === "") {
+        setSearchResults([])
+        return
+      }
 
-    setIsSearching(true)
+      setIsSearching(true)
+      try {
+        const results = await searchProducts(searchQuery.trim())
+        setSearchResults(results)
+      } catch (error) {
+        console.error("Failed to fetch search results:", error)
+        setSearchResults([]) // Clear results on error
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300) // Debounce search input
 
-    // Simulate search delay
-    const searchTimeout = setTimeout(() => {
-      const results = sampleBooks.filter(
-        (book) =>
-          book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.category.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-      setSearchResults(results)
-      setIsSearching(false)
-    }, 300)
-
-    return () => clearTimeout(searchTimeout)
+    return () => clearTimeout(delayDebounceFn)
   }, [searchQuery])
 
   const formatPrice = (price: number) => {
@@ -154,12 +115,12 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 {searchResults.map((book) => (
                   <Link
                     key={book.id}
-                    href={`/books/${book.id}`}
+                    href={`/books/${book.id}`} // Link to dynamic book page
                     onClick={handleClose}
                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Image
-                      src={book.image || "/placeholder.svg"}
+                      src={book.image_url || "/placeholder.svg"} // Use image_url
                       alt={book.title}
                       width={60}
                       height={80}
