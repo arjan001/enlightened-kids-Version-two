@@ -12,13 +12,14 @@ export default function NotFound() {
           font-size: 10rem; /* Adjust as needed for responsiveness */
           font-weight: 900;
           line-height: 1;
-          background-image: url('/galaxy-background.png'); /* Use the embedded image */
-          background-size: cover;
-          background-position: center;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          color: transparent; /* Fallback for browsers that don't support text-fill-color */
+          color: #3a2d6b; /* A deep, dark purple to mimic the original feel without the image */
           margin-bottom: 1rem;
+          text-shadow: 
+            -1px -1px 0 #2a1f4d,  
+            1px -1px 0 #2a1f4d,
+            -1px 1px 0 #2a1f4d,
+            1px 1px 0 #2a1f4d,
+            2px 2px 4px rgba(0,0,0,0.3); /* Subtle shadow for depth */
         }
         @media (max-width: 768px) {
           .oops-text {
