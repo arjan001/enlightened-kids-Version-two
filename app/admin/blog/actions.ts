@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from "uuid"
 
-const BLOG_BUCKET_NAME = "blog-images" // Ensure this matches your Supabase bucket name for blog images
+const BLOG_BUCKET_NAME = "blog-bucket" // Ensure this matches your Supabase bucket name for blog images
 
 // Helper to upload image and get public URL for blog posts
 async function uploadBlogImageInternal(file: File): Promise<string | null> {
