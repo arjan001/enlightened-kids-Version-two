@@ -83,6 +83,7 @@ export default function BlogPage() {
                         layout="fill"
                         objectFit="cover"
                         className="rounded-t-lg"
+                        unoptimized={post.image_url.includes("blob.v0.dev")} // Skip optimization for blob URLs in preview
                       />
                     </div>
                   )}

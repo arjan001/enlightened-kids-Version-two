@@ -60,6 +60,16 @@ export async function getBlogPosts() {
   return data
 }
 
+export async function getBlogPostById(id: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("blog_posts").select("*").eq("id", id).single()
+  if (error) {
+    console.error(`Error fetching blog post with ID ${id}:`, error)
+    return null
+  }
+  return data
+}
+
 export async function addBlogPost(formData: FormData) {
   const supabase = createClient()
 
@@ -91,6 +101,9 @@ export async function addBlogPost(formData: FormData) {
   }
 
   revalidatePath("/admin/blog")
+  if (is_published) {
+    revalidatePath("/blog") // Revalidate main blog page if new post is published
+  }
   return { success: true, data }
 }
 
@@ -137,6 +150,8 @@ export async function updateBlogPost(id: string, formData: FormData) {
   }
 
   revalidatePath("/admin/blog")
+  revalidatePath(`/blog/${id}`) // Revalidate the specific blog post page
+  revalidatePath("/blog") // Revalidate the main blog list page
   return { success: true, data }
 }
 
@@ -151,5 +166,7 @@ export async function deleteBlogPost(id: string, imageUrl?: string) {
     throw new Error(`Failed to delete blog post: ${error.message}`)
   }
   revalidatePath("/admin/blog")
+  revalidatePath(`/blog/${id}`) // Revalidate the specific blog post page
+  revalidatePath("/blog") // Revalidate the main blog list page
   return { success: true }
 }

@@ -184,8 +184,34 @@ const users = [
     status: "active",
     lastLogin: "2024-01-15 14:30",
     permissions: ["all"],
-  }
-
+  },
+  {
+    id: 2,
+    name: "John Manager",
+    email: "john@enlightenedkidsafrica.com",
+    role: "Manager",
+    status: "active",
+    lastLogin: "2024-01-14 10:15",
+    permissions: ["products", "orders", "customers"],
+  },
+  {
+    id: 3,
+    name: "Sarah Editor",
+    email: "sarah@enlightenedkidsafrica.com",
+    role: "Editor",
+    status: "active",
+    lastLogin: "2024-01-13 16:45",
+    permissions: ["blog", "products"],
+  },
+  {
+    id: 4,
+    name: "Mike Support",
+    email: "mike@enlightenedkidsafrica.com",
+    role: "Support",
+    status: "inactive",
+    lastLogin: "2024-01-10 09:20",
+    permissions: ["orders", "customers"],
+  },
 ]
 
 const roles = [
@@ -1624,7 +1650,23 @@ export default function AdminDashboard() {
                             <Badge className="bg-green-100 text-green-800">Active</Badge>
                           </TableCell>
                         </TableRow>
-                        
+                        <TableRow>
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-semibold text-purple-600">JS</span>
+                              </div>
+                              <span className="font-medium">John Smith</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>john@example.com</TableCell>
+                          <TableCell>3</TableCell>
+                          <TableCell>KES 6,000</TableCell>
+                          <TableCell>2024-01-10</TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
