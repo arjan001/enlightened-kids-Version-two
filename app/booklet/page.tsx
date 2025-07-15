@@ -29,13 +29,7 @@ export default function BookletPage() {
               <Download className="w-5 h-5" />
               Download Instantly
             </Button>
-            <Button
-              variant="outline"
-              className="border-green-500 text-green-500 hover:bg-green-50 px-8 py-4 rounded-full text-lg flex items-center gap-2 bg-transparent"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Request Via WhatsApp
-            </Button>
+            
           </div>
         </div>
       </section>
