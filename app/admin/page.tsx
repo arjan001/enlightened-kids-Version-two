@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useTransition } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -78,25 +78,26 @@ import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions" // Import Product Server Actions
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { uploadBlogImage } from "./blog/client-upload"
+import { useToast } from "@/components/ui/use-toast"
 
 // Define a type for your product data
 interface Product {
   id: string
   title: string
-  author: string
+  author?: string
   description?: string
   price: number
   category?: string
   stock: number
-  image_url?: string
+  image_url?: string | null
   age_range?: string
   pages?: number
-  status: string
-  sales: number
-  revenue: number
-  is_hot: boolean
-  created_at: string
-  updated_at: string
+  status?: string
+  sales?: number
+  revenue?: number
+  is_hot?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 // Define a type for your blog post data
@@ -332,6 +333,11 @@ export default function AdminDashboard() {
   const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
 
+  const { toast } = useToast()
+  const [isPending, startTransition] = useTransition()
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null)
+
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
     setErrorProducts(null)
@@ -511,6 +517,45 @@ export default function AdminDashboard() {
     { id: "users", label: "User Management", icon: UserPlus },
     { id: "settings", label: "Settings", icon: Settings },
   ]
+
+  const openEditDialog = (product: Product) => {
+    setCurrentProduct(product)
+    setIsDialogOpen(true)
+  }
+
+  const openAddDialog = () => {
+    setCurrentProduct(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleDeleteProduct = async (id: string, imageUrl?: string | null) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return
+
+    startTransition(async () => {
+      try {
+        const result = await deleteProduct(id, imageUrl || undefined)
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Product deleted successfully!",
+          })
+          fetchProducts()
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to delete product.",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: `Failed to delete product: ${(error as Error).message}`,
+          variant: "destructive",
+        })
+      }
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -6,7 +6,7 @@ export function createClient() {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role key for server-side operations
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // Use service role key for server actions
     {
       cookies: {
         get(name: string) {
@@ -17,15 +17,19 @@ export function createClient() {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
             // The `cookies().set()` method can only be called from a Server Component or Server Action.
-            // This error is typically not an issue if you're only reading cookies on the server.
-            console.warn("Could not set cookie on server:", error)
+            // This error is typically caused by an attempt to set a cookie from a Client Component.
+            // Many of these are fixed by moving `createClient()` to a Server Action or Server Component.
+            console.warn("Attempted to set cookie from client component:", error)
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: "", ...options })
           } catch (error) {
-            console.warn("Could not remove cookie on server:", error)
+            // The `cookies().set()` method can only be called from a Server Component or Server Action.
+            // This error is typically caused by an attempt to set a cookie from a Client Component.
+            // Many of these are fixed by moving `createClient()` to a Server Action or Server Component.
+            console.warn("Attempted to remove cookie from client component:", error)
           }
         },
       },

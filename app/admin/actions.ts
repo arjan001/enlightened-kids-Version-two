@@ -60,6 +60,17 @@ export async function getProducts() {
   return data
 }
 
+// New function to get a single product (e.g., the first one)
+export async function getFirstProduct() {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("products").select("*").limit(1).single()
+  if (error) {
+    console.error(`Error fetching first product:`, error)
+    return null
+  }
+  return data
+}
+
 export async function addProduct(formData: FormData) {
   const supabase = createClient()
 

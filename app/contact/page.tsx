@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,30 +10,26 @@ export default function ContactPage() {
     <div className="min-h-screen bg-white pt-16">
       <Header />
 
-      {/* Contact Section */}
-      <section className="py-20">
+      <section className="py-12 md:py-20 bg-[#fdfaf6]">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-12 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             {/* Contact Image */}
-            <div className="lg:w-1/2">
-              <div
-                className="h-96 lg:h-full rounded-lg bg-cover bg-center"
-                style={{
-                  backgroundImage: "url('/Contact Formimage.jpg?height=600&width=500')",
-                }}
-              >
-                {/* Artistic overlay representing the colorful child image */}
-                <div className="w-full h-full bg-gradient-to-br from-red-400/20 via-yellow-400/20 to-blue-400/20 rounded-lg"></div>
-              </div>
+            <div className="relative h-[450px] w-full rounded-lg overflow-hidden">
+              <Image
+                src="/contact.png"
+                alt="Child with colorful paint on face"
+                layout="fill"
+                objectFit="cover"
+                className="rounded-lg"
+              />
             </div>
 
             {/* Contact Form */}
-            <div className="lg:w-1/2">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Contact Form</h1>
-              <p className="text-gray-600 mb-2">Have a question, or just want to say hello?</p>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Contact Form</h1>
               <p className="text-gray-600 mb-8">
-                We'd love to hear from you. Whether you're a parent, teacher, or fellow creative, your voice matters
-                here.
+                Have a question, or just want to say hello? We'd love to hear from you. Whether you're a parent,
+                teacher, or fellow creative, your voice matters here.
               </p>
 
               <form className="space-y-6">
@@ -78,3 +75,6 @@ export default function ContactPage() {
     </div>
   )
 }
+
+// Removed unused icon components as they are not present in the provided image.
+// FacebookIcon, InstagramIcon, TwitterIcon
