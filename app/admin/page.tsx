@@ -313,15 +313,15 @@ export default function AdminDashboard() {
   const [editingRole, setEditingRole] = useState<any>(null)
 
   const [products, setProducts] = useState<Product[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(true)
+  const [loadingProducts, setLoadingProducts] = true
   const [errorProducts, setErrorProducts] = useState<string | null>(null)
 
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
-  const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
+  const [loadingBlogPosts, setLoadingBlogPosts] = true
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
 
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]) // New state for contact messages
-  const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
+  const [loadingContactMessages, setLoadingContactMessages] = true // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
   const { toast } = useToast()
