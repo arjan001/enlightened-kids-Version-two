@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useReducer, type ReactNode } from "react"
+import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 
 export interface CartItem {
   id: string
@@ -85,7 +85,26 @@ const CartContext = createContext<{
 } | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState)
+  // Initialize state from localStorage or use initialState
+  const [state, dispatch] = useReducer(cartReducer, initialState, (init) => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedCart = localStorage.getItem("enlightenedKidsCart")
+        return storedCart ? JSON.parse(storedCart) : init
+      } catch (error) {
+        console.error("Failed to parse stored cart from localStorage:", error)
+        return init
+      }
+    }
+    return init
+  })
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("enlightenedKidsCart", JSON.stringify(state))
+    }
+  }, [state])
 
   return <CartContext.Provider value={{ state, dispatch }}>{children}</CartContext.Provider>
 }
