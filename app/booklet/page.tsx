@@ -7,7 +7,7 @@ import { CheckCircle } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import Link from "next/link"
-import { Download, MessageCircle } from "lucide-react"
+import { Download } from "lucide-react"
 
 export default function BookletPage() {
   return (
@@ -186,12 +186,12 @@ export default function BookletPage() {
           backgroundPosition: "center",
         }}
       >
-        <div className="container mx-auto px-4 text-center max-w-3xl">
+        <Card className="w-full max-w-3xl mx-auto p-8 md:p-12 bg-white shadow-lg rounded-lg text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Access Your Booklet</h1>
           <p className="text-lg text-gray-700 mb-8 leading-relaxed">
-            Every purchase of Colours of Me comes with a free Discussion & Activity e-Booklet
+            In the meantime as you await delivery you can download the book guide
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex justify-center">
             <Button
               asChild
               className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 text-lg rounded-lg shadow-md"
@@ -201,21 +201,8 @@ export default function BookletPage() {
                 Download Instantly
               </Link>
             </Button>
-            <Button
-              asChild
-              className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 text-lg rounded-lg shadow-md"
-            >
-              <Link
-                href="https://wa.me/yourphonenumber?text=I%20would%20like%20to%20request%20the%20e-Booklet."
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Request Via Whatsapp
-              </Link>
-            </Button>
           </div>
-        </div>
+        </Card>
       </main>
 
       <Footer />
