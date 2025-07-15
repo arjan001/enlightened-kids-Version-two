@@ -190,10 +190,11 @@ export default function BooksPage() {
               <Badge className="bg-green-600 text-white mb-4">NEW</Badge>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{mainBook.title}</h1>{" "}
               {/* Dynamic title */}
-              <p className="text-gray-600 mb-4">by {mainBook.author}</p> {/* Dynamic author */}
+              <Badge className="bg-green-600 text-white mb-4">By {mainBook.author}</Badge> {/* Dynamic author */}
+              
               <p className="text-xl md:text-2xl font-bold text-orange-500 mb-2">{formatPrice(mainBook.price)}</p>{" "}
               {/* Dynamic price */}
-              <p className="text-sm text-gray-500 mb-6">In Stock: {mainBook.stock}</p> {/* Dynamic stock count */}
+              <p className="text-md  font-bold">In Stock:  {mainBook.stock}</p> {/* Dynamic stock count */}
               <p className="text-gray-600 mb-6 leading-relaxed">
                 {mainBook.description} {/* Dynamic description */}
               </p>
