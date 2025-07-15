@@ -63,7 +63,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         .map((item) =>
           item.id === action.payload.id ? { ...item, quantity: Math.max(0, action.payload.quantity) } : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0) // Filter out items with quantity 0
 
       const total = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
       const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0)

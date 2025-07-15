@@ -1,21 +1,26 @@
-"use client"
+import { createClient } from "@/lib/supabase/client" // Assuming you have a client-side Supabase client
 
-import { createClient } from "@/lib/supabase/client"
+const BLOG_BUCKET_NAME = "blog-images" // Ensure this matches your Supabase bucket name for blog images
 
-const BLOG_BUCKET_NAME = "blog-bucket"
-const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
+export async function uploadBlogImage(file: File) {
+  try {
+    const supabase = createClient()
+    // Sanitize filename to prevent issues with special characters
+    const sanitizedFileName = file.name.toLowerCase().replace(/[^a-z0-9.\-_]/g, "_")
+    const filePath = `${Date.now()}-${sanitizedFileName}`
 
-export async function uploadBlogImage(file: File): Promise<string> {
-  if (file.size > MAX_SIZE) throw new Error("Image is too large (max 5 MB)")
+    const { data, error } = await supabase.storage.from(BLOG_BUCKET_NAME).upload(filePath, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+    })
 
-  const supabase = createClient()
-  const filePath = `${crypto.randomUUID()}.${file.name.split(".").pop()}`
+    if (error) {
+      throw error
+    }
 
-  const { error } = await supabase.storage.from(BLOG_BUCKET_NAME).upload(filePath, file, { upsert: false })
-
-  if (error) throw error
-
-  const { data } = supabase.storage.from(BLOG_BUCKET_NAME).getPublicUrl(filePath)
-
-  return data.publicUrl
+    const { data: publicUrlData } = supabase.storage.from(BLOG_BUCKET_NAME).getPublicUrl(data.path)
+    return publicUrlData.publicUrl
+  } catch (err) {
+    throw new Error(`Image upload failed: ${(err as { message: string }).message}`)
+  }
 }
