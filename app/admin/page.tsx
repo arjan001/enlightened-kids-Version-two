@@ -40,6 +40,9 @@ import {
   Key,
   Menu,
   X,
+  MessageSquare,
+  CheckCircle,
+  Archive,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -77,6 +80,7 @@ import {
 import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions" // Import Product Server Actions
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
+import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
 
 // Define a type for your product data
@@ -115,6 +119,16 @@ interface BlogPost {
   published_at: string
   updated_at?: string
   views?: number
+}
+
+// Define a type for contact messages
+interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  message: string
+  status: "new" | "read" | "archived"
+  created_at: string
 }
 
 const initialState = {
@@ -267,6 +281,9 @@ export default function AdminDashboard() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [isAddRoleOpen, setIsAddRoleOpen] = useState(false)
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
+  const [isViewContactMessageOpen, setIsViewContactMessageOpen] = useState(false) // New state for contact message modal
+  const [viewingContactMessage, setViewingContactMessage] = useState<ContactMessage | null>(null) // New state for viewing contact message
+
   const [deleteItem, setDeleteItem] = useState<{ type: string; id: string; name: string; imageUrl?: string } | null>(
     null,
   )
@@ -283,6 +300,10 @@ export default function AdminDashboard() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
   const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
+
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]) // New state for contact messages
+  const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
+  const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
@@ -319,10 +340,25 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchContactMessages = useCallback(async () => {
+    setLoadingContactMessages(true)
+    setErrorContactMessages(null)
+    try {
+      const fetchedMessages = await getContactMessages()
+      setContactMessages(fetchedMessages)
+    } catch (error: any) {
+      setErrorContactMessages(error.message || "Failed to fetch contact messages")
+      console.error("Failed to fetch contact messages:", error)
+    } finally {
+      setLoadingContactMessages(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchProducts()
     fetchBlogPosts()
-  }, [fetchProducts, fetchBlogPosts])
+    fetchContactMessages() // Fetch contact messages on component mount
+  }, [fetchProducts, fetchBlogPosts, fetchContactMessages])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -358,6 +394,15 @@ export default function AdminDashboard() {
     setIsViewOrderOpen(true)
   }
 
+  const handleViewContactMessage = (message: ContactMessage) => {
+    setViewingContactMessage(message)
+    setIsViewContactMessageOpen(true)
+    // Optionally mark as read when viewed
+    if (message.status === "new") {
+      updateContactMessageStatus(message.id, "read")
+    }
+  }
+
   const confirmDeleteAction = async () => {
     if (!deleteItem) return
 
@@ -370,6 +415,10 @@ export default function AdminDashboard() {
         await deleteBlogPost(deleteItem.id, deleteItem.imageUrl)
         console.log(`Blog post ${deleteItem.name} deleted successfully.`)
         fetchBlogPosts() // Re-fetch blog posts after deletion
+      } else if (deleteItem.type === "contact-message") {
+        await deleteContactMessage(deleteItem.id)
+        console.log(`Contact message ${deleteItem.name} deleted successfully.`)
+        fetchContactMessages() // Re-fetch contact messages after deletion
       }
       // Add other delete types here (e.g., user, role)
     } catch (error) {
@@ -455,6 +504,7 @@ export default function AdminDashboard() {
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "users", label: "User Management", icon: UserPlus },
+    { id: "contact-messages", label: "Contact Messages", icon: MessageSquare }, // New sidebar item
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
@@ -2069,6 +2119,100 @@ export default function AdminDashboard() {
               </Tabs>
             </div>
           )}
+
+          {activeTab === "contact-messages" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Contact Messages</h2>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <CardTitle>All Messages</CardTitle>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="read">Read</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input placeholder="Search messages..." className="pl-10 w-full sm:w-64" />
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingContactMessages && <p>Loading messages...</p>}
+                  {errorContactMessages && <p className="text-red-500">Error: {errorContactMessages}</p>}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length === 0 && (
+                    <p>No contact messages found.</p>
+                  )}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Sender</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[250px]">Subject/Excerpt</TableHead>
+                            <TableHead className="min-w-[100px]">Status</TableHead>
+                            <TableHead className="min-w-[120px]">Date</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {contactMessages.map((message) => (
+                            <TableRow key={message.id} className={message.status === "new" ? "bg-blue-50/50" : ""}>
+                              <TableCell className="font-medium">{message.name}</TableCell>
+                              <TableCell>{message.email}</TableCell>
+                              <TableCell className="truncate max-w-xs">
+                                {message.message.substring(0, 50)}
+                                {message.message.length > 50 ? "..." : ""}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    message.status === "new"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : message.status === "read"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                  }
+                                >
+                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewContactMessage(message)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDelete("contact-message", message.id, message.name)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </main>
       </div>
 
@@ -2569,6 +2713,77 @@ export default function AdminDashboard() {
                   Close
                 </Button>
                 <Button>Update Status</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Contact Message Modal */}
+      <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Contact Message Details</DialogTitle>
+          </DialogHeader>
+          {viewingContactMessage && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">From:</Label>
+                <p className="text-base">{viewingContactMessage.name}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Email:</Label>
+                <p className="text-base">{viewingContactMessage.email}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Date:</Label>
+                <p className="text-base">{new Date(viewingContactMessage.created_at).toLocaleString()}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Status:</Label>
+                <Badge
+                  className={
+                    viewingContactMessage.status === "new"
+                      ? "bg-blue-100 text-blue-800"
+                      : viewingContactMessage.status === "read"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {viewingContactMessage.status.charAt(0).toUpperCase() + viewingContactMessage.status.slice(1)}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Message:</Label>
+                <p className="text-base whitespace-pre-wrap">{viewingContactMessage.message}</p>
+              </div>
+              <div className="flex justify-end space-x-2">
+                {viewingContactMessage.status !== "archived" && (
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "archived")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <Archive className="w-4 h-4 mr-2" /> Archive
+                  </Button>
+                )}
+                {viewingContactMessage.status !== "read" && (
+                  <Button
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "read")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Read
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
+                  Close
+                </Button>
               </div>
             </div>
           )}

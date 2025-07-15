@@ -1,3 +1,5 @@
+"use client"
+
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -5,8 +7,33 @@ import { Textarea } from "@/components/ui/textarea"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { CartProvider } from "@/contexts/cart-context"
+import { useActionState } from "react"
+import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { useEffect } from "react"
+import { addContactMessageReducer } from "@/app/contact/actions"
 
 export default function ContactPage() {
+  const initialState = { success: false, error: null as string | null }
+  const [state, formAction, isPending] = useActionState(addContactMessageReducer, initialState)
+
+  const { toast } = useToast()
+
+  // Show toast when state changes
+  useEffect(() => {
+    if (state.success) {
+      toast({
+        title: "Success!",
+        description: "Your message has been sent successfully.",
+      })
+    } else if (state.error) {
+      toast({
+        title: "Error!",
+        description: state.error,
+        variant: "destructive",
+      })
+    }
+  }, [state, toast])
+
   return (
     <CartProvider>
       <div className="min-h-screen bg-white pt-16">
@@ -34,10 +61,11 @@ export default function ContactPage() {
                   teacher, or fellow creative, your voice matters here.
                 </p>
 
-                <form className="space-y-6">
+                <form action={formAction} className="space-y-6">
                   <div>
                     <Input
                       type="text"
+                      name="name"
                       placeholder="Your Name*"
                       className="w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       required
@@ -47,6 +75,7 @@ export default function ContactPage() {
                   <div>
                     <Input
                       type="email"
+                      name="email"
                       placeholder="Your Email*"
                       className="w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       required
@@ -55,6 +84,7 @@ export default function ContactPage() {
 
                   <div>
                     <Textarea
+                      name="message"
                       placeholder="Your Message"
                       rows={6}
                       className="w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
@@ -64,8 +94,9 @@ export default function ContactPage() {
                   <Button
                     type="submit"
                     className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg text-lg"
+                    disabled={isPending}
                   >
-                    SUBMIT
+                    {isPending ? "SENDING..." : "SUBMIT"}
                   </Button>
                 </form>
               </div>
@@ -78,6 +109,3 @@ export default function ContactPage() {
     </CartProvider>
   )
 }
-
-// Removed unused icon components as they are not present in the provided image.
-// FacebookIcon, InstagramIcon, TwitterIcon
