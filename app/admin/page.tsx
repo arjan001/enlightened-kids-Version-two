@@ -82,7 +82,6 @@ import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
-import { uploadImage, deleteImage } from "@/lib/utils" // Import image utility functions
 
 // Define a type for your product data
 interface Product {
@@ -448,42 +447,19 @@ export default function AdminDashboard() {
     if (!editingProduct?.id) return
 
     const formData = new FormData(event.currentTarget)
-    const title = String(formData.get("title"))
-    const author = String(formData.get("author") ?? "") // Explicitly get author
-    const description = String(formData.get("description") ?? "")
-    const price = Number.parseFloat(String(formData.get("price") ?? "0"))
-    const stock = Number.parseInt(String(formData.get("stock") ?? "0"), 10)
-    const category = String(formData.get("category") ?? "")
-    const age_range = String(formData.get("ageRange") ?? "")
-    const pages = Number.parseInt(String(formData.get("pages") ?? "0"), 10)
-
-    let image_url: string | null = String(formData.get("currentImageUrl") ?? "")
-    const imageFile = formData.get("image") as File | null
-
-    if (imageFile && imageFile.size > 0) {
-      if (image_url) {
-        await deleteImage(image_url)
-      }
-      image_url = await uploadImage(imageFile, "products-bucket") // Specify bucket name
+    // Add the current image URL to formData if no new image is selected
+    if (!formData.get("image") || (formData.get("image") as File).size === 0) {
+      formData.append("currentImageUrl", editingProduct.image_url || "")
     }
 
     try {
-      await updateProduct(editingProduct.id, {
-        title,
-        author,
-        description,
-        price,
-        stock,
-        category,
-        image_url,
-        age_range,
-        pages,
-      })
+      await updateProduct(editingProduct.id, formData)
       setIsEditProductOpen(false)
       setEditingProduct(null)
-      fetchProducts()
+      fetchProducts() // Re-fetch products after updating
     } catch (error) {
       console.error("Failed to update product:", error)
+      // Optionally show a toast notification for error
     }
   }
 
@@ -884,7 +860,7 @@ export default function AdminDashboard() {
                     <DialogHeader>
                       <DialogTitle>Add New Product</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleAddProductSubmit} className="space-y-4">
+                    <form action={handleAddProductSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="title">Book Title</Label>
