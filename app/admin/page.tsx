@@ -77,7 +77,6 @@ import {
 import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions" // Import Product Server Actions
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
-import { uploadBlogImage } from "./blog/client-upload"
 import { useToast } from "@/components/ui/use-toast"
 
 // Define a type for your product data
@@ -165,9 +164,7 @@ const recentOrders = [
     customerAddress: "123 Nairobi Street, Nairobi",
     reviews: 4.5,
     totalReviews: 12,
-  }
-
-
+  },
 ]
 
 const paymentMethods = [
@@ -420,12 +417,6 @@ export default function AdminDashboard() {
   const handleAddBlogPostSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
-    const imageFile = (event.currentTarget.image as HTMLInputElement).files?.[0]
-    if (imageFile) {
-      const imageUrl = await uploadBlogImage(imageFile)
-      formData.append("imageUrl", imageUrl)
-    }
-    formData.delete("image") // remove the binary
     try {
       await addBlogPost(formData)
       setIsAddBlogOpen(false)
@@ -440,13 +431,8 @@ export default function AdminDashboard() {
     if (!editingBlog?.id) return
 
     const formData = new FormData(event.currentTarget)
-    const imageFile = (event.currentTarget.image as HTMLInputElement).files?.[0]
-    if (imageFile) {
-      const imageUrl = await uploadBlogImage(imageFile)
-      formData.append("imageUrl", imageUrl)
-    }
-    formData.delete("image") // remove the binary
-    if (!formData.get("image") || (formData.get("image") as File).size === 0) {
+    // Preserve current image URL if no new file selected
+    if (!(formData.get("image") as File)?.size) {
       formData.append("currentImageUrl", editingBlog.image_url || "")
     }
 
