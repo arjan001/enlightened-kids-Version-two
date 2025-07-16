@@ -82,8 +82,6 @@ import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
 
 // Define a type for your product data
 interface Product {
@@ -271,23 +269,6 @@ const permissions = [
 ]
 
 export default function AdminDashboard() {
-  const router = useRouter()
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
-        router.push("/admin/login")
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
   const [activeTab, setActiveTab] = useState("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isAddProductOpen, setIsAddProductOpen] = useState(false)
@@ -313,15 +294,15 @@ export default function AdminDashboard() {
   const [editingRole, setEditingRole] = useState<any>(null)
 
   const [products, setProducts] = useState<Product[]>([])
-  const [loadingProducts, setLoadingProducts] = true
+  const [loadingProducts, setLoadingProducts] = useState(true)
   const [errorProducts, setErrorProducts] = useState<string | null>(null)
 
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
-  const [loadingBlogPosts, setLoadingBlogPosts] = true
+  const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
 
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]) // New state for contact messages
-  const [loadingContactMessages, setLoadingContactMessages] = true // New state for loading contact messages
+  const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
   const { toast } = useToast()
