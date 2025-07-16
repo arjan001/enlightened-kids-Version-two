@@ -1,26 +1,41 @@
+"use client"
+
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 export default function NotFound() {
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
-      {/* Galaxy Background */}
+    <section
+      className={cn(
+        "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background text-center",
+      )}
+    >
+      {/* Star field */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-70 blur-sm"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 animate-[starfield_100s_linear_infinite]"
         style={{
-          backgroundImage: `url(/galaxy-background.png)`,
+          backgroundImage: "radial-gradient(white 1px, transparent 1px), radial-gradient(white 1px, transparent 1px)",
+          backgroundPosition: "0 0, 25px 25px",
+          backgroundSize: "50px 50px",
         }}
       />
 
-      {/* Content Container */}
-      <div className="relative z-10 text-center p-8 rounded-lg shadow-xl bg-black/20 backdrop-blur-md border border-white/10">
-        <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 animate-pulse">404</h1>
-        <p className="text-lg md:text-xl text-gray-300 mb-6">Oops! The page you are looking for could not be found.</p>
-        <Link href="/" className="inline-block">
-          <button className="px-6 py-3 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold hover:from-purple-700 hover:to-blue-700 transition-colors duration-300 shadow-md">
-            Go Back Home
-          </button>
-        </Link>
-      </div>
-    </div>
+      {/* Cosmic gradient glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.indigo.600)/40,transparent)]"
+      />
+
+      <h1 className="z-10 text-8xl font-black tracking-tight text-foreground drop-shadow-lg sm:text-9xl">404</h1>
+      <p className="z-10 mt-4 max-w-md text-balance text-lg text-muted-foreground md:text-xl">
+        Oops! The page you’re looking for drifted off into space.
+      </p>
+
+      <Button asChild size="lg" className="z-10 mt-8">
+        <Link href="/">Back to Home</Link>
+      </Button>
+    </section>
   )
 }
