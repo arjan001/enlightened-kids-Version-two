@@ -117,9 +117,8 @@ export default function BlogPage() {
                     <div className="flex items-center justify-between">
                       <Link href={`/blog/${post.id}`} passHref>
                         <Button
-                          variant="outline" size="sm" 
-                          className="text-orange-500 border-orange-500 bg-transparent"
-                          
+                          variant="link"
+                          className="p-0 h-auto text-orange-500 hover:text-orange-600 font-semibold"
                         >
                           Read More
                         </Button>

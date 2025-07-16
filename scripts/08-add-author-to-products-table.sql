@@ -1,2 +1,0 @@
-ALTER TABLE products
-ADD COLUMN author TEXT;
