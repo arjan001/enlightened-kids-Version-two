@@ -4,11 +4,7 @@ import type { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const response = NextResponse.next({ request: { headers: request.headers } })
 
   const supabase = createClient(request, response)
 
@@ -16,15 +12,14 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  // Protect everything under /admin
   if (request.nextUrl.pathname.startsWith("/admin") && !session) {
-    const redirectUrl = new URL("/admin/login", request.url)
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL("/admin/login", request.url))
   }
 
-  // Check if the user is trying to access the login page while already logged in
+  // Prevent authenticated users from visiting the login page
   if (request.nextUrl.pathname === "/admin/login" && session) {
-    const redirectUrl = new URL("/admin", request.url)
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL("/admin", request.url))
   }
 
   return response

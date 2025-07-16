@@ -1,41 +1,39 @@
 "use client"
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-
 export default function NotFound() {
   return (
-    <section
-      className={cn(
-        "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background text-center",
-      )}
-    >
-      {/* Star field */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 animate-[starfield_100s_linear_infinite]"
-        style={{
-          backgroundImage: "radial-gradient(white 1px, transparent 1px), radial-gradient(white 1px, transparent 1px)",
-          backgroundPosition: "0 0, 25px 25px",
-          backgroundSize: "50px 50px",
-        }}
-      />
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-800 text-white">
+      {/* Decorative stars */}
+      <div className="pointer-events-none absolute inset-0 animate-pulse bg-[url('/placeholder.svg?height=800&width=800')] opacity-10" />
 
-      {/* Cosmic gradient glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,theme(colors.indigo.600)/40,transparent)]"
-      />
-
-      <h1 className="z-10 text-8xl font-black tracking-tight text-foreground drop-shadow-lg sm:text-9xl">404</h1>
-      <p className="z-10 mt-4 max-w-md text-balance text-lg text-muted-foreground md:text-xl">
-        Oops! The page you’re looking for drifted off into space.
+      <h1 className="z-10 text-9xl font-extrabold tracking-wider text-white/90">404</h1>
+      <p className="z-10 mt-4 max-w-lg text-center text-lg text-white/80">
+        Oops! The page you&rsquo;re looking for has drifted off into space.
       </p>
 
-      <Button asChild size="lg" className="z-10 mt-8">
-        <Link href="/">Back to Home</Link>
-      </Button>
-    </section>
+      <a
+        href="/"
+        className="z-10 mt-8 rounded-md bg-white/10 px-6 py-3 text-sm font-medium backdrop-blur transition hover:bg-white/20"
+      >
+        Take me home
+      </a>
+
+      {/* Subtle moving nebula effect */}
+      <div
+        aria-hidden
+        className="absolute -top-40 left-1/2 h-[60rem] w-[60rem] -translate-x-1/2 rounded-full bg-purple-500 opacity-30 blur-3xl"
+        style={{ animation: "spin 40s linear infinite" }}
+      />
+      <style jsx>{`
+        @keyframes spin {
+          from {
+            transform: translateX(-50%) rotate(0deg);
+          }
+          to {
+            transform: translateX(-50%) rotate(360deg);
+          }
+        }
+      `}</style>
+    </main>
   )
 }
