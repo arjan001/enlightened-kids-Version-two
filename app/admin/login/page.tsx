@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (error) {
       toast({
         title: "Login Error",
-        description: error.message,
+        description: error.message || "An unexpected error occurred. Please try again.", // Added a fallback message
         variant: "destructive",
       })
     } else {
