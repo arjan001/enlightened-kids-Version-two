@@ -9,6 +9,7 @@ interface CartItem {
   price: number
   quantity: number
   image_url?: string | null
+  image?: string | null // Added for flexibility if image comes from a different field
 }
 
 export async function processCheckout(
@@ -27,7 +28,8 @@ export async function processCheckout(
   const address = String(formData.get("address"))
   const city = String(formData.get("city"))
   const postalCode = String(formData.get("postalCode"))
-  const country = String(formData.get("country")) // Get the new country field
+  // The country field is no longer needed in the customers table, but it's still passed from the form
+  // const country = String(formData.get("country"))
 
   let customerId: string | null = null
 
@@ -56,7 +58,7 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
-          country, // Update country field
+          // country: country, // Removed as per user request
           updated_at: new Date().toISOString(),
         })
         .eq("id", customerId)
@@ -78,7 +80,7 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
-          country, // Insert country field
+          // country: country, // Removed as per user request
         })
         .select("id")
         .single()
@@ -100,14 +102,15 @@ export async function processCheckout(
       .from("orders")
       .insert({
         customer_id: customerId,
-        customer_name: `${firstName} ${lastName}`, // Denormalized for easy access
-        customer_email: email, // Denormalized for easy access
+        customer_first_name: firstName, // Use first_name
+        customer_last_name: lastName, // Use last_name
+        customer_email: email, // Use email
         total_amount: totalAmount,
         shipping_cost: shippingCost,
         payment_method: selectedPaymentMethod,
         ordered_products: cartItems, // Store cart items as JSONB
-        status: "pending_payment", // Initial status
-        order_date: new Date().toISOString(),
+        order_notes: null, // No notes collected from form currently
+        created_at: new Date().toISOString(), // Maps to created_at
       })
       .select("*")
       .single()

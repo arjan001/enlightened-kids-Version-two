@@ -2,184 +2,110 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { v4 as uuidv4 } from "uuid"
-import { redirect } from "next/navigation" // Import redirect
 
-const BOOKS_BUCKET_NAME = "books-bucket"
-
-// Helper to upload image and get public URL
-async function uploadImage(file: File): Promise<string | null> {
-  if (!file || file.size === 0) return null
-
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${uuidv4()}.${fileExt}`
-  const filePath = `${fileName}`
-
-  const supabase = createClient()
-  const { data, error } = await supabase.storage.from(BOOKS_BUCKET_NAME).upload(filePath, file, {
-    cacheControl: "3600",
-    upsert: false,
-  })
-
-  if (error) {
-    console.error("Error uploading image:", error)
-    throw new Error(`Failed to upload image: ${error.message}`)
-  }
-
-  const { data: publicUrlData } = supabase.storage.from(BOOKS_BUCKET_NAME).getPublicUrl(data.path)
-  return publicUrlData.publicUrl
+export interface Customer {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  address: string | null
+  city: string | null
+  postal_code: string | null
+  // country: string | null; // Removed as per user request
+  created_at: string
+  updated_at: string | null
 }
 
-// Helper to delete image from storage
-async function deleteImage(imageUrl: string | undefined) {
-  const supabase = createClient()
-  if (!imageUrl) return
-
-  const urlParts = imageUrl.split("/")
-  const bucketIndex = urlParts.indexOf(BOOKS_BUCKET_NAME)
-  if (bucketIndex === -1 || bucketIndex + 1 >= urlParts.length) {
-    console.warn("Could not parse image path from URL for deletion:", imageUrl)
-    return
-  }
-  const imagePath = urlParts.slice(bucketIndex + 1).join("/")
-
-  if (imagePath) {
-    const { error } = await supabase.storage.from(BOOKS_BUCKET_NAME).remove([imagePath])
-    if (error) {
-      console.warn("Failed to remove old image from storage:", error)
-    }
-  }
+export interface BlogPost {
+  id: string
+  title: string
+  content: string
+  author: string
+  image_url: string | null
+  created_at: string
+  is_published: boolean
 }
 
-export async function getProducts() {
-  const supabase = createClient()
-  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
-  if (error) {
-    console.error("Error fetching products:", error)
-    throw new Error(`Failed to fetch products: ${error.message}`)
-  }
-  return data
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  message: string
+  created_at: string
 }
 
-// New function to get a single product (e.g., the first one)
-export async function getFirstProduct() {
-  const supabase = createClient()
-  const { data, error } = await supabase.from("products").select("*").limit(1).single()
-  if (error) {
-    console.error(`Error fetching first product:`, error)
-    return null
-  }
-  return data
-}
-
-export async function addProduct(formData: FormData) {
-  const supabase = createClient()
-
-  const title = String(formData.get("title"))
-  const description = String(formData.get("description") ?? "")
-  const price = Number.parseFloat(String(formData.get("price") ?? "0"))
-  const stock = Number.parseInt(String(formData.get("stock") ?? "0"), 10) // Ensure stock is an integer, default to 0
-  const category = String(formData.get("category") ?? "")
-  const author = String(formData.get("author") ?? "") // Added author
-
-  let image_url: string | null = null
-  const imageFile = formData.get("image") as File | null
-  if (imageFile && imageFile.size > 0) {
-    image_url = await uploadImage(imageFile)
-  }
-
-  const { data, error } = await supabase
-    .from("products")
-    .insert({ title, description, price, stock, category, image_url, author }) // Added author
-  if (error) {
-    console.error("Error adding product:", error)
-    throw new Error(`Failed to add product: ${error.message}`)
-  }
-
-  revalidatePath("/admin")
-  return { success: true, data }
-}
-
-export async function updateProduct(id: string, formData: FormData) {
-  const supabase = createClient()
-
-  const title = String(formData.get("title"))
-  const description = String(formData.get("description") ?? "")
-  const price = Number.parseFloat(String(formData.get("price") ?? "0"))
-  const stock = Number.parseInt(String(formData.get("stock") ?? "0"), 10) // Ensure stock is an integer, default to 0
-  const category = String(formData.get("category") ?? "")
-  const author = String(formData.get("author") ?? "") // Added author
-
-  let image_url: string | null = String(formData.get("currentImageUrl") ?? "")
-  const imageFile = formData.get("image") as File | null
-
-  if (imageFile && imageFile.size > 0) {
-    if (image_url) {
-      await deleteImage(image_url)
-    }
-    image_url = await uploadImage(imageFile)
-  }
-
-  const { data, error } = await supabase
-    .from("products")
-    .update({ title, description, price, stock, category, image_url, author }) // Added author
-    .eq("id", id)
-  if (error) {
-    console.error("Error updating product:", error)
-    throw new Error(`Failed to update product: ${error.message}`)
-  }
-
-  revalidatePath("/admin")
-  return { success: true, data }
-}
-
-export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase = createClient()
-  if (imageUrl) {
-    await deleteImage(imageUrl)
-  }
-  const { error } = await supabase.from("products").delete().eq("id", id)
-  if (error) {
-    console.error("Error deleting product:", error)
-    throw new Error(`Failed to delete product: ${error.message}`)
-  }
-  revalidatePath("/admin")
-  return { success: true }
-}
-
-export async function searchProducts(query: string) {
+export async function getCustomers(): Promise<Customer[]> {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .ilike("title", `%${query}%`) // Case-insensitive search on title
+    .from("customers")
+    .select("id, first_name, last_name, email, phone, address, city, postal_code, created_at, updated_at") // Removed country
     .order("created_at", { ascending: false })
 
   if (error) {
-    console.error("Error searching products:", error)
-    throw new Error(`Failed to search products: ${error.message}`)
-  }
-  return data
-}
-
-export async function signOutUser() {
-  const supabase = createClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    console.error("Error signing out:", error)
-    throw new Error(`Failed to sign out: ${error.message}`)
-  }
-  revalidatePath("/admin") // Revalidate the admin path to force re-check auth
-  redirect("/admin/login") // Redirect to login page after logout
-}
-
-// New function to get all customers
-export async function getCustomers() {
-  const supabase = createClient()
-  const { data, error } = await supabase.from("customers").select("*").order("created_at", { ascending: false })
-  if (error) {
     console.error("Error fetching customers:", error)
-    throw new Error(`Failed to fetch customers: ${error.message}`)
+    return []
   }
-  return data
+  return data as Customer[]
+}
+
+export async function getBlogPosts(): Promise<BlogPost[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching blog posts:", error)
+    return []
+  }
+  return data as BlogPost[]
+}
+
+export async function getContactMessages(): Promise<ContactMessage[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching contact messages:", error)
+    return []
+  }
+  return data as ContactMessage[]
+}
+
+export async function deleteBlogPost(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from("blog_posts").delete().eq("id", id)
+
+  if (error) {
+    console.error("Error deleting blog post:", error)
+    return { success: false, message: "Failed to delete blog post." }
+  }
+
+  revalidatePath("/admin/blog")
+  return { success: true, message: "Blog post deleted successfully." }
+}
+
+export async function deleteContactMessage(id: string) {
+  const supabase = createClient()
+  const { error } = await supabase.from("contact_messages").delete().eq("id", id)
+
+  if (error) {
+    console.error("Error deleting contact message:", error)
+    return { success: false, message: "Failed to delete contact message." }
+  }
+
+  revalidatePath("/admin/contact")
+  return { success: true, message: "Contact message deleted successfully." }
+}
+
+export async function updateBlogPostPublishStatus(id: string, isPublished: boolean) {
+  const supabase = createClient()
+  const { error } = await supabase.from("blog_posts").update({ is_published: isPublished }).eq("id", id)
+
+  if (error) {
+    console.error("Error updating publish status:", error)
+    return { success: false, message: "Failed to update publish status." }
+  }
+
+  revalidatePath("/admin/blog")
+  return { success: true, message: "Publish status updated successfully." }
 }
