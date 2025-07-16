@@ -6,19 +6,21 @@ import { useState, useEffect, useMemo, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/contexts/cart-context" // Ensure this import path is correct
+import { useCart } from "@/contexts/cart-context"
 import Image from "next/image"
-import { PaymentModal } from "@/components/payment-modal"
 import { useToast } from "@/components/ui/use-toast"
-import { processCheckout } from "./actions" // Import the server action
+import { processCheckout } from "@/app/checkout/actions"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Loader2, Minus, Plus, Trash2 } from "lucide-react"
 
 export default function CheckoutPage() {
-  const { cartItems, dispatch } = useCart()
+  const { state, dispatch } = useCart() // Correctly destructure state
+  const cartItems = state.items // Access cart items from state.items
   const { toast } = useToast()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -27,286 +29,362 @@ export default function CheckoutPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
-  const [address, setAddress] = useState("")
+  const [streetAddress, setStreetAddress] = useState("")
   const [city, setCity] = useState("")
   const [postalCode, setPostalCode] = useState("")
-  const [country, setCountry] = useState("Kenya") // Default to Kenya
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("M-Pesa") // Default payment method
+  const [orderNotes, setOrderNotes] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("mpesa")
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-
-  // Load form data from local storage on mount
   useEffect(() => {
-    setFirstName(localStorage.getItem("checkout_firstName") || "")
-    setLastName(localStorage.getItem("checkout_lastName") || "")
-    setEmail(localStorage.getItem("checkout_email") || "")
-    setPhone(localStorage.getItem("checkout_phone") || "")
-    setAddress(localStorage.getItem("checkout_address") || "")
-    setCity(localStorage.getItem("checkout_city") || "")
-    setPostalCode(localStorage.getItem("checkout_postalCode") || "")
-    setCountry(localStorage.getItem("checkout_country") || "Kenya")
-    setSelectedPaymentMethod(localStorage.getItem("checkout_paymentMethod") || "M-Pesa")
+    const savedFirstName = localStorage.getItem("firstName")
+    const savedLastName = localStorage.getItem("lastName")
+    const savedEmail = localStorage.getItem("email")
+    const savedPhone = localStorage.getItem("phone")
+    const savedStreetAddress = localStorage.getItem("streetAddress")
+    const savedCity = localStorage.getItem("city")
+    const savedPostalCode = localStorage.getItem("postalCode")
+    const savedOrderNotes = localStorage.getItem("orderNotes")
+    const savedPaymentMethod = localStorage.getItem("paymentMethod")
+
+    if (savedFirstName) setFirstName(savedFirstName)
+    if (savedLastName) setLastName(savedLastName)
+    if (savedEmail) setEmail(savedEmail)
+    if (savedPhone) setPhone(savedPhone)
+    if (savedStreetAddress) setStreetAddress(savedStreetAddress)
+    if (savedCity) setCity(savedCity)
+    if (savedPostalCode) setPostalCode(savedPostalCode)
+    if (savedOrderNotes) setOrderNotes(savedOrderNotes)
+    if (savedPaymentMethod) setPaymentMethod(savedPaymentMethod)
   }, [])
 
-  // Save form data to local storage on change
   useEffect(() => {
-    localStorage.setItem("checkout_firstName", firstName)
-    localStorage.setItem("checkout_lastName", lastName)
-    localStorage.setItem("checkout_email", email)
-    localStorage.setItem("checkout_phone", phone)
-    localStorage.setItem("checkout_address", address)
-    localStorage.setItem("checkout_city", city)
-    localStorage.setItem("checkout_postalCode", postalCode)
-    localStorage.setItem("checkout_country", country)
-    localStorage.setItem("checkout_paymentMethod", selectedPaymentMethod)
-  }, [firstName, lastName, email, phone, address, city, postalCode, country, selectedPaymentMethod])
+    localStorage.setItem("firstName", firstName)
+    localStorage.setItem("lastName", lastName)
+    localStorage.setItem("email", email)
+    localStorage.setItem("phone", phone)
+    localStorage.setItem("streetAddress", streetAddress)
+    localStorage.setItem("city", city)
+    localStorage.setItem("postalCode", postalCode)
+    localStorage.setItem("orderNotes", orderNotes)
+    localStorage.setItem("paymentMethod", paymentMethod)
+  }, [firstName, lastName, email, phone, streetAddress, city, postalCode, orderNotes, paymentMethod])
+
+  const shippingCost = 200 // Example fixed shipping cost
 
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   }, [cartItems])
 
-  const shippingCost = 500 // Example fixed shipping cost
-  const totalAmount = subtotal + shippingCost
+  const totalAmount = useMemo(() => {
+    return subtotal + shippingCost
+  }, [subtotal, shippingCost])
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: "KES",
-      minimumFractionDigits: 0,
-    }).format(price)
+  const handleQuantityChange = (id: string, delta: number) => {
+    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity: delta } })
   }
 
-  const handleProceedToPayment = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault() // Prevent default form submission
+  const handleRemoveItem = (id: string) => {
+    dispatch({ type: "REMOVE_FROM_CART", payload: id })
+  }
 
-    startTransition(async () => {
-      const formData = new FormData(event.currentTarget)
-      // Manually append values from state-managed inputs if they don't have a 'name' attribute
-      // (though it's better to use 'name' directly on the input)
-      formData.set("firstName", firstName)
-      formData.set("lastName", lastName)
-      formData.set("email", email)
-      formData.set("phone", phone)
-      formData.set("address", address)
-      formData.set("city", city)
-      formData.set("postalCode", postalCode)
-      formData.set("country", country)
-      formData.set("paymentMethod", selectedPaymentMethod) // Ensure this is passed
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsProcessing(true)
 
-      try {
-        const result = await processCheckout(formData, cartItems, totalAmount, shippingCost, selectedPaymentMethod)
+    const customerData = {
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone_number: phone,
+      street_address: streetAddress,
+      city,
+      postal_code: postalCode,
+    }
 
-        if (result.success) {
-          toast({
-            title: "Success",
-            description: "Order Made Successfully!",
-          })
-          // Clear cart and local storage after successful order creation
-          dispatch({ type: "CLEAR_CART" })
-          localStorage.removeItem("checkout_firstName")
-          localStorage.removeItem("checkout_lastName")
-          localStorage.removeItem("checkout_email")
-          localStorage.removeItem("checkout_phone")
-          localStorage.removeItem("checkout_address")
-          localStorage.removeItem("checkout_city")
-          localStorage.removeItem("checkout_postalCode")
-          localStorage.removeItem("checkout_country")
-          localStorage.removeItem("checkout_paymentMethod")
+    const orderData = {
+      cartItems: cartItems, // Use the correctly destructured cartItems
+      totalAmount,
+      shippingCost,
+      paymentMethod,
+      orderNotes,
+    }
 
-          router.push("/booklet") // Redirect to /booklet page
-        } else {
-          toast({
-            title: "Error",
-            description: result.message || "Failed to create order.",
-            variant: "destructive",
-          })
-        }
-      } catch (error: any) {
-        console.error("Client-side error during checkout:", error)
-        toast({
-          title: "Error",
-          description: `An unexpected error occurred: ${error.message}`,
-          variant: "destructive",
-        })
-      }
-    })
+    const result = await processCheckout(customerData, orderData)
+
+    if (result.success) {
+      toast({
+        title: "Order Placed Successfully!",
+        description: "Your order has been received and is being processed.",
+        variant: "default",
+      })
+      dispatch({ type: "CLEAR_CART" })
+      localStorage.removeItem("firstName")
+      localStorage.removeItem("lastName")
+      localStorage.removeItem("email")
+      localStorage.removeItem("phone")
+      localStorage.removeItem("streetAddress")
+      localStorage.removeItem("city")
+      localStorage.removeItem("postalCode")
+      localStorage.removeItem("orderNotes")
+      localStorage.removeItem("paymentMethod")
+      router.push("/booklet")
+    } else {
+      toast({
+        title: "Checkout Failed",
+        description: result.error || "There was an error processing your order. Please try again.",
+        variant: "destructive",
+      })
+    }
+    setIsProcessing(false)
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-3xl font-bold mb-8 text-center">Checkout</h1>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Link href="/books" className="flex items-center text-sm text-gray-600 hover:text-gray-800">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Books
+        </Link>
+      </div>
+      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
-      <form onSubmit={handleProceedToPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Shipping Information */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Shipping Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                name="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street address, P.O. Box, etc."
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  name="postalCode"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Select name="country" value={country} onValueChange={setCountry}>
-                  <SelectTrigger id="country">
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Kenya">Kenya</SelectItem>
-                    <SelectItem value="Uganda">Uganda</SelectItem>
-                    <SelectItem value="Tanzania">Tanzania</SelectItem>
-                    <SelectItem value="Rwanda">Rwanda</SelectItem>
-                    <SelectItem value="Burundi">Burundi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cartItems.length === 0 ? (
-              <p className="text-center text-gray-500">Your cart is empty.</p>
-            ) : (
-              <div className="space-y-2">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-2">
-                      {item.image_url && (
-                        <Image
-                          src={item.image_url || "/placeholder.svg"}
-                          alt={item.title}
-                          width={40}
-                          height={50}
-                          className="rounded object-cover"
-                        />
-                      )}
-                      <span>
-                        {item.title} (x{item.quantity})
-                      </span>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {cartItems.length === 0 ? (
+                <p>Your cart is empty.</p>
+              ) : (
+                <div className="space-y-4">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-4">
+                      <Image
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        width={80}
+                        height={80}
+                        className="rounded-md object-cover"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.name}</h3>
+                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        <p className="font-semibold">Ksh {item.price.toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleQuantityChange(item.id, -1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span>{item.quantity}</span>
+                        <Button variant="outline" size="icon" onClick={() => handleQuantityChange(item.id, 1)}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
-                    <span>{formatPrice(item.price * item.quantity)}</span>
+                  ))}
+                  <Separator className="my-4" />
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <span>Subtotal</span>
+                      <span className="font-medium">Ksh {subtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Shipping</span>
+                      <span className="font-medium">Ksh {shippingCost.toLocaleString()}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex items-center justify-between text-lg font-bold">
+                      <span>Total</span>
+                      <span>Ksh {totalAmount.toLocaleString()}</span>
+                    </div>
                   </div>
-                ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+                <Label
+                  htmlFor="mpesa"
+                  className="flex items-center justify-between rounded-md border-2 border-orange-500 p-4 cursor-pointer has-[[data-state=checked]]:border-orange-600"
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="mpesa" id="mpesa" className="sr-only" />
+                    <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={40} height={40} className="rounded-sm" />
+                    <div>
+                      <p className="font-medium">Pay securely with your M-Pesa mobile money account</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                    Popular
+                  </span>
+                </Label>
+                <Label
+                  htmlFor="paypal"
+                  className="flex items-center justify-between rounded-md border-2 border-gray-200 p-4 cursor-pointer has-[[data-state=checked]]:border-gray-400"
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="paypal" id="paypal" className="sr-only" />
+                    <div className="w-10 h-10 bg-gray-200 rounded-sm flex items-center justify-center text-gray-500">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-paypal"
+                      >
+                        <path d="M12.5 6.5H18a2 2 0 0 1 2 2v3.5a2 2 0 0 1-2 2h-5.5a2 2 0 0 0-2 2v.5a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2v-3.5a2 2 0 0 1 2-2h5.5a2 2 0 0 0 2-2v-.5a2 2 0 0 1 2-2Z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium">Pay with your PayPal account or credit/debit card</p>
+                    </div>
+                  </div>
+                </Label>
+              </RadioGroup>
+              <Button type="submit" className="w-full mt-6" disabled={isProcessing || cartItems.length === 0}>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  `Complete Payment - Ksh ${totalAmount.toLocaleString()}`
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="first-name">First Name</Label>
+                  <Input
+                    id="first-name"
+                    placeholder="Enter your first name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last-name">Last Name</Label>
+                  <Input
+                    id="last-name"
+                    placeholder="Enter your last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            )}
-
-            <Separator />
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>{formatPrice(shippingCost)}</span>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
               </div>
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>{formatPrice(totalAmount)}</span>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Delivery Address</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="street-address">Street Address</Label>
+                <Input
+                  id="street-address"
+                  placeholder="Enter your street address"
+                  value={streetAddress}
+                  onChange={(e) => setStreetAddress(e.target.value)}
+                  required
+                />
               </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Enter your city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postal-code">Postal Code</Label>
+                  <Input
+                    id="postal-code"
+                    placeholder="Enter postal code"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Separator />
-
-            {/* Payment Method Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment Method</Label>
-              <Select name="paymentMethod" value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                <SelectTrigger id="paymentMethod">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="M-Pesa">M-Pesa</SelectItem>
-                  <SelectItem value="PayPal">PayPal</SelectItem>
-                  <SelectItem value="Card">Credit/Debit Card</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isPending || cartItems.length === 0}>
-              {isPending ? "Processing..." : "Complete Payment"}
-            </Button>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Notes (Optional)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="order-notes"
+                placeholder="Any special instructions for your order..."
+                rows={4}
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </form>
-
-      {/* Payment Modal (kept for future use, but not opened directly after order creation now) */}
-      <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
     </div>
   )
 }

@@ -72,8 +72,19 @@ import {
 } from "recharts"
 import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers } from "./actions" // Import Product Server Actions and signOutUser, getCustomers
-import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
-import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
+import {
+  addBlogPost,
+  getBlogPosts,
+  updateBlogPost,
+  deleteBlogPost,
+  type BlogPost as BlogPostType,
+} from "./blog/actions" // Import Blog Server Actions
+import {
+  getContactMessages,
+  updateContactMessageStatus,
+  deleteContactMessage,
+  type ContactMessage as ContactMessageType,
+} from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client" // Import client-side Supabase client
 
@@ -95,35 +106,38 @@ interface Product {
   is_hot?: boolean
   created_at?: string
   updated_at?: string
+  name: string
 }
 
 // Define a type for your blog post data
-interface BlogPost {
-  id: string
-  title: string
-  excerpt?: string
-  content: string
-  author: string
-  tags?: string[]
-  category?: string
-  read_time?: string
-  image_url?: string
-  is_published: boolean
-  created_at: string
-  published_at: string
-  updated_at?: string
-  views?: number
-}
+// interface BlogPostType {
+//   id: string
+//   title: string
+//   excerpt?: string
+//   content: string
+//   author: string
+//   tags?: string[]
+//   category?: string
+//   read_time?: string
+//   image_url?: string
+//   is_published: boolean
+//   created_at: string
+//   published_at: string
+//   updated_at?: string
+//   views?: number
+// }
 
 // Define a type for contact messages
-interface ContactMessage {
-  id: string
-  name: string
-  email: string
-  message: string
-  status: "new" | "read" | "archived"
-  created_at: string
-}
+// interface ContactMessageType {
+//   id: string
+//   name: string
+//   email: string
+//   message: string
+//   status: "new" | "read" | "archived"
+//   created_at: string
+//   subject: string
+//   is_read: boolean
+// }
 
 // Define a type for customer data
 interface Customer {
@@ -138,6 +152,8 @@ interface Customer {
   country?: string // Added country field
   created_at: string
   updated_at?: string
+  phone_number: string
+  street_address: string
 }
 
 const initialState = {
@@ -277,10 +293,12 @@ const permissions = [
   { id: "users", name: "User Management", description: "Manage users and permissions" },
 ]
 
+export const dynamic = "force-dynamic"
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false)
+  const [isAddProductOpen, setIsAddProductOpen] = useState(isSidebarOpen)
   const [isAddBlogOpen, setIsAddBlogOpen] = useState(false)
   const [isEditProductOpen, setIsEditProductOpen] = useState(false)
   const [isEditBlogOpen, setIsEditBlogOpen] = useState(false)
@@ -291,13 +309,13 @@ export default function AdminDashboard() {
   const [isAddRoleOpen, setIsAddRoleOpen] = useState(false)
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
   const [isViewContactMessageOpen, setIsViewContactMessageOpen] = useState(false) // New state for contact message modal
-  const [viewingContactMessage, setViewingContactMessage] = useState<ContactMessage | null>(null) // New state for viewing contact message
+  const [viewingContactMessage, setViewingContactMessage] = useState<ContactMessageType | null>(null) // New state for viewing contact message
 
   const [deleteItem, setDeleteItem] = useState<{ type: string; id: string; name: string; imageUrl?: string } | null>(
     null,
   )
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null)
+  const [editingBlog, setEditingBlog] = useState<BlogPostType | null>(null)
   const [viewingOrder, setViewingOrder] = useState<any>(null)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [editingRole, setEditingRole] = useState<any>(null)
@@ -306,11 +324,11 @@ export default function AdminDashboard() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [errorProducts, setErrorProducts] = useState<string | null>(null)
 
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
+  const [blogPosts, setBlogPosts] = useState<BlogPostType[]>([])
   const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
 
-  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]) // New state for contact messages
+  const [contactMessages, setContactMessages] = useState<ContactMessageType[]>([]) // New state for contact messages
   const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
@@ -446,7 +464,7 @@ export default function AdminDashboard() {
     setIsViewOrderOpen(true)
   }
 
-  const handleViewContactMessage = (message: ContactMessage) => {
+  const handleViewContactMessage = (message: ContactMessageType) => {
     setViewingContactMessage(message)
     setIsViewContactMessageOpen(true)
     // Optionally mark as read when viewed
