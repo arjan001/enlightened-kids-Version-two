@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,13 +15,16 @@ import Image from "next/image"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react" // Import useTransition
 import { Textarea } from "@/components/ui/textarea"
 import { PaymentModal } from "@/components/payment-modal"
+import { processCheckout } from "../checkout/actions" // Import the new server action
+import { toast } from "@/components/ui/use-toast" // Import toast for notifications
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart()
   const router = useRouter()
+  const [isPending, startTransition] = useTransition() // Initialize useTransition
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa")
@@ -142,12 +147,59 @@ export default function CheckoutPage() {
     )
   }
 
-  const handleProceedToPayment = () => {
-    if (isFormValid()) {
-      setIsPaymentModalOpen(true)
-    } else {
-      alert("Please fill in all required contact and delivery information.")
+  const handleProceedToPayment = async (event: React.FormEvent) => {
+    event.preventDefault() // Prevent default form submission
+
+    if (!isFormValid()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required contact and delivery information.",
+        variant: "destructive",
+      })
+      return
     }
+
+    startTransition(async () => {
+      const formData = new FormData(event.currentTarget as HTMLFormElement) // Create FormData from the form
+      formData.set("firstName", firstName) // Manually add state values to FormData
+      formData.set("lastName", lastName)
+      formData.set("email", email)
+      formData.set("phone", phone)
+      formData.set("address", address)
+      formData.set("city", city)
+      formData.set("postalCode", postalCode)
+      formData.set("orderNotes", orderNotes)
+
+      const result = await processCheckout(formData, state.items, total, shipping, selectedPaymentMethod)
+
+      if (result.success) {
+        toast({
+          title: "Order Created",
+          description: result.message,
+          variant: "default",
+        })
+        // Clear local storage for checkout form fields
+        localStorage.removeItem("checkoutFirstName")
+        localStorage.removeItem("checkoutLastName")
+        localStorage.removeItem("checkoutEmail")
+        localStorage.removeItem("checkoutPhone")
+        localStorage.removeItem("checkoutAddress")
+        localStorage.removeItem("checkoutCity")
+        localStorage.removeItem("checkoutPostalCode")
+        localStorage.removeItem("checkoutOrderNotes")
+
+        // Clear the cart
+        dispatch({ type: "CLEAR_CART" })
+
+        setIsPaymentModalOpen(true) // Open payment modal after successful order creation
+      } else {
+        toast({
+          title: "Order Failed",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    })
   }
 
   // If cart is empty, display a loading state or null while redirecting
@@ -174,8 +226,9 @@ export default function CheckoutPage() {
             Back to Books
           </Button>
           <h1 className="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <form onSubmit={handleProceedToPayment} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {" "}
+            {/* Wrap content in a form */}
             {/* Left Column: Order Summary & Payment Method */}
             <div className="space-y-8">
               {/* Order Summary */}
@@ -290,16 +343,15 @@ export default function CheckoutPage() {
                     </Label>
                   </RadioGroup>
                   <Button
+                    type="submit" // Change to type="submit"
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={!isFormValid() || !selectedPaymentMethod}
-                    onClick={handleProceedToPayment}
+                    disabled={isPending || !isFormValid() || !selectedPaymentMethod} // Disable during pending state
                   >
-                    Complete Payment - {formatPrice(total)}
+                    {isPending ? "Processing Order..." : `Complete Payment - ${formatPrice(total)}`}
                   </Button>
                 </CardContent>
               </Card>
             </div>
-
             {/* Right Column: Contact, Delivery, Order Notes */}
             <div className="space-y-8">
               {/* Contact Information */}
@@ -308,11 +360,12 @@ export default function CheckoutPage() {
                   <CardTitle className="text-xl font-semibold text-gray-800">Contact Information</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
+                        name="firstName" // Add name attribute
                         placeholder="Enter your first name"
                         required
                         value={firstName}
@@ -323,6 +376,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
+                        name="lastName" // Add name attribute
                         placeholder="Enter your last name"
                         required
                         value={lastName}
@@ -333,6 +387,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="email">Email Address</Label>
                       <Input
                         id="email"
+                        name="email" // Add name attribute
                         type="email"
                         placeholder="Enter your email address"
                         required
@@ -344,6 +399,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input
                         id="phone"
+                        name="phone" // Add name attribute
                         type="tel"
                         placeholder="Enter your phone number"
                         required
@@ -351,7 +407,7 @@ export default function CheckoutPage() {
                         onChange={(e) => setPhone(e.target.value)}
                       />
                     </div>
-                  </form>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -361,11 +417,12 @@ export default function CheckoutPage() {
                   <CardTitle className="text-xl font-semibold text-gray-800">Delivery Address</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="address">Street Address</Label>
                       <Input
                         id="address"
+                        name="address" // Add name attribute
                         placeholder="Enter your street address"
                         required
                         value={address}
@@ -376,6 +433,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
+                        name="city" // Add name attribute
                         placeholder="Enter your city"
                         required
                         value={city}
@@ -386,13 +444,14 @@ export default function CheckoutPage() {
                       <Label htmlFor="postalCode">Postal Code</Label>
                       <Input
                         id="postalCode"
+                        name="postalCode" // Add name attribute
                         placeholder="Enter postal code"
                         required
                         value={postalCode}
                         onChange={(e) => setPostalCode(e.target.value)}
                       />
                     </div>
-                  </form>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -403,6 +462,7 @@ export default function CheckoutPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <Textarea
+                    name="orderNotes" // Add name attribute
                     placeholder="Any special instructions for your order..."
                     className="min-h-[100px]"
                     value={orderNotes}
@@ -411,7 +471,8 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </form>{" "}
+          {/* End of the form */}
         </div>
       </main>
 
