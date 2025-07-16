@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { v4 as uuidv4 } from "uuid"
+import { redirect } from "next/navigation" // Import redirect
 
 const BOOKS_BUCKET_NAME = "books-bucket"
 
@@ -79,6 +80,7 @@ export async function addProduct(formData: FormData) {
   const price = Number.parseFloat(String(formData.get("price") ?? "0"))
   const stock = Number.parseInt(String(formData.get("stock") ?? "0"), 10) // Ensure stock is an integer, default to 0
   const category = String(formData.get("category") ?? "")
+  const author = String(formData.get("author") ?? "") // Added author
 
   let image_url: string | null = null
   const imageFile = formData.get("image") as File | null
@@ -88,7 +90,7 @@ export async function addProduct(formData: FormData) {
 
   const { data, error } = await supabase
     .from("products")
-    .insert({ title, description, price, stock, category, image_url })
+    .insert({ title, description, price, stock, category, image_url, author }) // Added author
   if (error) {
     console.error("Error adding product:", error)
     throw new Error(`Failed to add product: ${error.message}`)
@@ -106,6 +108,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const price = Number.parseFloat(String(formData.get("price") ?? "0"))
   const stock = Number.parseInt(String(formData.get("stock") ?? "0"), 10) // Ensure stock is an integer, default to 0
   const category = String(formData.get("category") ?? "")
+  const author = String(formData.get("author") ?? "") // Added author
 
   let image_url: string | null = String(formData.get("currentImageUrl") ?? "")
   const imageFile = formData.get("image") as File | null
@@ -119,7 +122,7 @@ export async function updateProduct(id: string, formData: FormData) {
 
   const { data, error } = await supabase
     .from("products")
-    .update({ title, description, price, stock, category, image_url })
+    .update({ title, description, price, stock, category, image_url, author }) // Added author
     .eq("id", id)
   if (error) {
     console.error("Error updating product:", error)
@@ -142,4 +145,30 @@ export async function deleteProduct(id: string, imageUrl?: string) {
   }
   revalidatePath("/admin")
   return { success: true }
+}
+
+export async function searchProducts(query: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .ilike("title", `%${query}%`) // Case-insensitive search on title
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error searching products:", error)
+    throw new Error(`Failed to search products: ${error.message}`)
+  }
+  return data
+}
+
+export async function signOutUser() {
+  const supabase = createClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    console.error("Error signing out:", error)
+    throw new Error(`Failed to sign out: ${error.message}`)
+  }
+  revalidatePath("/admin") // Revalidate the admin path to force re-check auth
+  redirect("/admin/login") // Redirect to login page after logout
 }

@@ -78,10 +78,11 @@ import {
   Cell,
 } from "recharts"
 import Image from "next/image"
-import { addProduct, getProducts, updateProduct, deleteProduct } from "./actions" // Import Product Server Actions
+import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser } from "./actions" // Import Product Server Actions and signOutUser
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
+import { createClient } from "@/lib/supabase/client" // Import client-side Supabase client
 
 // Define a type for your product data
 interface Product {
@@ -305,10 +306,33 @@ export default function AdminDashboard() {
   const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
+  const [user, setUser] = useState<any>(null) // State to hold current user info
+
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null)
+
+  // Fetch user session on component mount
+  useEffect(() => {
+    const supabase = createClient()
+    const fetchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    fetchUser()
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => {
+      authListener?.subscription.unsubscribe()
+    }
+  }, [])
 
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
@@ -495,6 +519,22 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await signOutUser()
+      toast({
+        title: "Success",
+        description: "You have been logged out.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log out.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "products", label: "Products", icon: BookOpen },
@@ -570,9 +610,11 @@ export default function AdminDashboard() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-semibold">CN</span>
+                      <span className="text-white text-sm font-semibold">
+                        {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium hidden sm:inline">Cheryl Nyakio</span>
+                    <span className="text-sm font-medium hidden sm:inline">{user?.email || "Guest User"}</span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -585,7 +627,7 @@ export default function AdminDashboard() {
                     <Settings className="w-4 h-4 mr-2" />
                     Account Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-600">
+                  <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -752,7 +794,7 @@ export default function AdminDashboard() {
                   <CardContent>
                     <div className="space-y-4">
                       {products
-                        .sort((a, b) => b.sales - a.sales)
+                        .sort((a, b) => (b.sales || 0) - (a.sales || 0)) // Ensure sales are numbers for sorting
                         .slice(0, 4)
                         .map((book, index) => (
                           <div key={book.id} className="flex items-center justify-between">
@@ -762,11 +804,11 @@ export default function AdminDashboard() {
                               </div>
                               <div>
                                 <p className="font-medium text-sm">{book.title}</p>
-                                <p className="text-xs text-gray-500">{book.sales} copies sold</p>
+                                <p className="text-xs text-gray-500">{book.sales || 0} copies sold</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-xs sm:text-sm">{formatPrice(book.revenue)}</p>
+                              <p className="font-semibold text-xs sm:text-sm">{formatPrice(book.revenue || 0)}</p>
                             </div>
                           </div>
                         ))}
@@ -860,7 +902,7 @@ export default function AdminDashboard() {
                     <DialogHeader>
                       <DialogTitle>Add New Product</DialogTitle>
                     </DialogHeader>
-                    <form action={handleAddProductSubmit} className="space-y-4">
+                    <form onSubmit={handleAddProductSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="title">Book Title</Label>
