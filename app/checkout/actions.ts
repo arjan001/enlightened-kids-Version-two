@@ -34,9 +34,6 @@ export async function processCheckout(
 
   try {
     // 2. Insert or Update Customer Information
-    // For simplicity, we'll try to find an existing customer by email.
-    // If found, we'll use their ID. If not, we'll insert a new customer.
-    // A more robust system might handle user authentication and link orders to authenticated users.
     const { data: existingCustomer, error: customerFetchError } = await supabase
       .from("customers")
       .select("id")
@@ -44,14 +41,14 @@ export async function processCheckout(
       .single()
 
     if (customerFetchError && customerFetchError.code !== "PGRST116") {
-      // PGRST116 means no rows found
+      // PGRST116 means no rows found, which is expected if it's a new customer
       console.error("Error fetching existing customer:", customerFetchError)
       throw new Error(`Failed to fetch customer: ${customerFetchError.message}`)
     }
 
     if (existingCustomer) {
       customerId = existingCustomer.id
-      // Optionally, update existing customer details here if needed
+      // Update existing customer details
       const { error: updateError } = await supabase
         .from("customers")
         .update({
@@ -121,10 +118,13 @@ export async function processCheckout(
 
     if (orderError) {
       console.error("Error inserting order:", orderError)
+      // Log the detailed error from Supabase
+      console.error("Supabase Order Insert Error Details:", orderError.details)
+      console.error("Supabase Order Insert Error Hint:", orderError.hint)
       throw new Error(`Failed to insert order: ${orderError.message}`)
     }
 
-    revalidatePath("/checkout") // Revalidate path if needed, though not strictly necessary for this action
+    revalidatePath("/checkout")
     return { success: true, order: orderData, message: "Order successfully created." }
   } catch (error: any) {
     console.error("Checkout process failed:", error.message)

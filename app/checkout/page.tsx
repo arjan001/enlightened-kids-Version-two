@@ -15,16 +15,16 @@ import Image from "next/image"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useTransition } from "react" // Import useTransition
+import { useEffect, useState, useTransition } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { PaymentModal } from "@/components/payment-modal"
-import { processCheckout } from "../checkout/actions" // Import the new server action
-import { toast } from "@/components/ui/use-toast" // Import toast for notifications
+import { processCheckout } from "../checkout/actions"
+import { toast } from "@/components/ui/use-toast"
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart()
   const router = useRouter()
-  const [isPending, startTransition] = useTransition() // Initialize useTransition
+  const [isPending, startTransition] = useTransition()
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa")
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
 
       if (result.success) {
         toast({
-          title: "Order Created",
+          title: "Order Made Successfully!",
           description: result.message,
           variant: "default",
         })
@@ -191,7 +191,8 @@ export default function CheckoutPage() {
         // Clear the cart
         dispatch({ type: "CLEAR_CART" })
 
-        setIsPaymentModalOpen(true) // Open payment modal after successful order creation
+        // Redirect to /booklet page
+        router.push("/booklet")
       } else {
         toast({
           title: "Order Failed",
@@ -227,8 +228,6 @@ export default function CheckoutPage() {
           </Button>
           <h1 className="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
           <form onSubmit={handleProceedToPayment} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {" "}
-            {/* Wrap content in a form */}
             {/* Left Column: Order Summary & Payment Method */}
             <div className="space-y-8">
               {/* Order Summary */}
@@ -343,9 +342,9 @@ export default function CheckoutPage() {
                     </Label>
                   </RadioGroup>
                   <Button
-                    type="submit" // Change to type="submit"
+                    type="submit"
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={isPending || !isFormValid() || !selectedPaymentMethod} // Disable during pending state
+                    disabled={isPending || !isFormValid() || !selectedPaymentMethod}
                   >
                     {isPending ? "Processing Order..." : `Complete Payment - ${formatPrice(total)}`}
                   </Button>
@@ -365,7 +364,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
-                        name="firstName" // Add name attribute
+                        name="firstName"
                         placeholder="Enter your first name"
                         required
                         value={firstName}
@@ -376,7 +375,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        name="lastName" // Add name attribute
+                        name="lastName"
                         placeholder="Enter your last name"
                         required
                         value={lastName}
@@ -387,7 +386,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="email">Email Address</Label>
                       <Input
                         id="email"
-                        name="email" // Add name attribute
+                        name="email"
                         type="email"
                         placeholder="Enter your email address"
                         required
@@ -399,7 +398,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input
                         id="phone"
-                        name="phone" // Add name attribute
+                        name="phone"
                         type="tel"
                         placeholder="Enter your phone number"
                         required
@@ -422,7 +421,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="address">Street Address</Label>
                       <Input
                         id="address"
-                        name="address" // Add name attribute
+                        name="address"
                         placeholder="Enter your street address"
                         required
                         value={address}
@@ -433,7 +432,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
-                        name="city" // Add name attribute
+                        name="city"
                         placeholder="Enter your city"
                         required
                         value={city}
@@ -444,7 +443,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="postalCode">Postal Code</Label>
                       <Input
                         id="postalCode"
-                        name="postalCode" // Add name attribute
+                        name="postalCode"
                         placeholder="Enter postal code"
                         required
                         value={postalCode}
@@ -462,7 +461,7 @@ export default function CheckoutPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <Textarea
-                    name="orderNotes" // Add name attribute
+                    name="orderNotes"
                     placeholder="Any special instructions for your order..."
                     className="min-h-[100px]"
                     value={orderNotes}
@@ -471,14 +470,13 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
             </div>
-          </form>{" "}
-          {/* End of the form */}
+          </form>
         </div>
       </main>
 
       <Footer />
 
-      {/* Payment Modal */}
+      {/* Payment Modal - Kept for future payment integration, but not opened directly after order creation */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
