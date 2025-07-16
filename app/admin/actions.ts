@@ -117,3 +117,157 @@ async function deleteImage(imageUrl: string | undefined) {
     }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   PRODUCT                                  */
+/* -------------------------------------------------------------------------- */
+
+import { randomUUID } from "crypto"
+
+/**
+ * Upload a file to Supabase Storage and return the public URL.
+ */
+async function uploadImage(file: File): Promise<string | null> {
+  const supabase = createClient()
+  if (!file || file.size === 0) return null
+
+  const extension = file.name.split(".").pop() || "png"
+  const filePath = `${randomUUID()}.${extension}`
+
+  // Upload
+  const { error: uploadError } = await supabase.storage
+    .from(BOOKS_BUCKET_NAME)
+    .upload(filePath, file, { contentType: file.type })
+
+  if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`)
+
+  // Public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BOOKS_BUCKET_NAME).getPublicUrl(filePath)
+
+  return publicUrl
+}
+
+/**
+ * Create a new product.
+ */
+export async function addProduct(formData: FormData) {
+  "use server"
+  const supabase = createClient()
+
+  // Required fields
+  const title = formData.get("title") as string
+  const author = formData.get("author") as string
+  const price = Number(formData.get("price") as string)
+
+  // Optional fields
+  const description = (formData.get("description") as string) || null
+  const category = (formData.get("category") as string) || null
+  const stock = Number((formData.get("stock") as string) || 0)
+  const age_range = (formData.get("ageRange") as string) || null
+  const pages = formData.get("pages") ? Number(formData.get("pages") as string) : null
+
+  // Image (may be empty)
+  const imageFile = formData.get("image") as File | null
+  const image_url = imageFile ? await uploadImage(imageFile) : null
+
+  const { error } = await supabase.from("products").insert({
+    title,
+    author,
+    price,
+    description,
+    category,
+    stock,
+    age_range,
+    pages,
+    image_url,
+    status: "active",
+  })
+
+  if (error) throw new Error(`Failed to add product: ${error.message}`)
+
+  revalidatePath("/admin")
+  return { success: true }
+}
+
+/**
+ * Fetch all products ordered by newest first.
+ */
+export async function getProducts() {
+  "use server"
+  const supabase = createClient()
+  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
+
+  if (error) throw new Error(`Failed to fetch products: ${error.message}`)
+  return data
+}
+
+/**
+ * Update an existing product.
+ */
+export async function updateProduct(id: string, formData: FormData) {
+  "use server"
+  const supabase = createClient()
+
+  // Grab current image URL if supplied
+  let image_url = (formData.get("currentImageUrl") as string) || null
+  const newFile = formData.get("image") as File | null
+
+  // If a new file was provided, upload it and remove the old one
+  if (newFile && newFile.size > 0) {
+    if (image_url) await deleteImage(image_url)
+    image_url = await uploadImage(newFile)
+  }
+
+  const updates: Record<string, unknown> = {
+    title: formData.get("title"),
+    author: formData.get("author"),
+    price: Number(formData.get("price") as string),
+    category: formData.get("category"),
+    stock: Number(formData.get("stock") as string),
+    description: formData.get("description"),
+    age_range: formData.get("ageRange"),
+    pages: formData.get("pages") ? Number(formData.get("pages") as string) : null,
+    image_url,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase.from("products").update(updates).eq("id", id)
+
+  if (error) throw new Error(`Failed to update product: ${error.message}`)
+
+  revalidatePath("/admin")
+  return { success: true }
+}
+
+/**
+ * Delete a product and its storage image (if any).
+ */
+export async function deleteProduct(id: string, imageUrl?: string) {
+  "use server"
+  const supabase = createClient()
+
+  if (imageUrl) await deleteImage(imageUrl)
+
+  const { error } = await supabase.from("products").delete().eq("id", id)
+  if (error) throw new Error(`Failed to delete product: ${error.message}`)
+
+  revalidatePath("/admin")
+  return { success: true }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   AUTH                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Server-side sign-out helper so the client can call it via useActionState().
+ */
+export async function signOutUser() {
+  "use server"
+  const supabase = createClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw new Error(`Failed to sign out user: ${error.message}`)
+  return { success: true }
+}
