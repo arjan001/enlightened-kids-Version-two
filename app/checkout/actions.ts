@@ -1,79 +1,72 @@
+"use server"
+
 import { createClient } from "@/lib/supabase/server"
-import type { CartItem } from "@/contexts/cart-context"
-import { cookies } from "next/headers"
+import { revalidatePath } from "next/cache"
 
-interface CustomerData {
-  first_name: string
-  last_name: string
-  email: string
-  phone_number: string
-  street_address: string
-  city: string
-  postal_code: string
+interface CartItem {
+  id: string
+  name: string // Changed from title to name to match product schema
+  price: number
+  quantity: number
+  image?: string | null // Changed from image_url to image to match product schema
 }
 
-interface OrderData {
-  cartItems: CartItem[]
-  totalAmount: number
-  shippingCost: number
-  paymentMethod: string
-  orderNotes: string
-}
+export async function processCheckout(
+  customerData: {
+    first_name: string
+    last_name: string
+    email: string
+    phone_number: string
+    street_address: string
+    city: string
+    postal_code: string
+  },
+  orderData: {
+    cartItems: CartItem[]
+    totalAmount: number
+    shippingCost: number
+    paymentMethod: string
+    orderNotes: string
+  },
+) {
+  const supabase = createClient()
 
-export async function processCheckout(customerData: CustomerData, orderData: OrderData) {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  const { first_name, last_name, email, phone_number, street_address, city, postal_code } = customerData
+  const { cartItems, totalAmount, shippingCost, paymentMethod, orderNotes } = orderData
 
   try {
-    // 1. Upsert customer information
-    const { data: customer, error: customerError } = await supabase
-      .from("customers")
-      .upsert(
-        {
-          email: customerData.email,
-          first_name: customerData.first_name,
-          last_name: customerData.last_name,
-          phone_number: customerData.phone_number,
-          street_address: customerData.street_address,
-          city: customerData.city,
-          postal_code: customerData.postal_code,
-        },
-        { onConflict: "email" },
-      )
-      .select()
+    // 1. Insert Order Data directly into the orders table
+    const { data: newOrder, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        customer_name: `${first_name} ${last_name}`,
+        customer_email: email,
+        phone_number: phone_number,
+        shipping_address_line1: street_address,
+        shipping_city: city,
+        shipping_zip_code: postal_code,
+        shipping_country: "Kenya", // Assuming a default country for now, can be made dynamic
+        total_amount: totalAmount,
+        shipping_cost: shippingCost,
+        payment_method: paymentMethod,
+        ordered_products: cartItems, // Store cart items as JSONB
+        order_notes: orderNotes,
+        status: "pending_payment", // Initial status
+        order_date: new Date().toISOString(),
+      })
+      .select("*")
       .single()
 
-    if (customerError) {
-      console.error("Supabase customer upsert error:", customerError)
-      return { success: false, message: "Failed to save customer information." }
-    }
-
-    if (!customer) {
-      return { success: false, message: "Customer data could not be retrieved after upsert." }
-    }
-
-    // 2. Insert order information
-    const { error: orderError } = await supabase.from("orders").insert({
-      customer_id: customer.id,
-      customer_first_name: customer.first_name,
-      customer_last_name: customer.last_name,
-      customer_email: customer.email,
-      ordered_products: orderData.cartItems, // Store cart items as JSONB
-      total_amount: orderData.totalAmount,
-      shipping_cost: orderData.shippingCost,
-      payment_method: orderData.paymentMethod,
-      order_notes: orderData.orderNotes, // Include order notes
-      status: "pending", // Default status
-    })
-
     if (orderError) {
-      console.error("Supabase order insert error:", orderError)
-      return { success: false, message: "Failed to create order." }
+      console.error("Error inserting order:", orderError.message, orderError.details, orderError.hint)
+      return { success: false, error: `Failed to create order: ${orderError.message}` }
     }
 
-    return { success: true, message: "Order placed successfully!" }
+    console.log("Order created successfully:", newOrder)
+    revalidatePath("/checkout")
+    return { success: true, message: "Order created successfully!", order: newOrder }
   } catch (error: any) {
-    console.error("Server action error:", error)
-    return { success: false, message: `An unexpected server error occurred: ${error.message}` }
+    console.error("Unexpected error during checkout process:", error)
+    return { success: false, error: `An unexpected error occurred: ${error.message}` }
   }
 }

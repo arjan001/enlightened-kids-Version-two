@@ -1,5 +1,7 @@
 "use client"
 
+import { Calendar } from "@/components/ui/calendar"
+
 import type React from "react"
 
 import { useState, useEffect, useCallback, useTransition } from "react"
@@ -36,6 +38,12 @@ import {
   Menu,
   X,
   MessageSquare,
+  Mail,
+  Phone,
+  MapPin,
+  Star,
+  Archive,
+  CheckCircle,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -72,19 +80,8 @@ import {
 } from "recharts"
 import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers } from "./actions" // Import Product Server Actions and signOutUser, getCustomers
-import {
-  addBlogPost,
-  getBlogPosts,
-  updateBlogPost,
-  deleteBlogPost,
-  type BlogPost as BlogPostType,
-} from "./blog/actions" // Import Blog Server Actions
-import {
-  getContactMessages,
-  updateContactMessageStatus,
-  deleteContactMessage,
-  type ContactMessage as ContactMessageType,
-} from "./contact/actions" // Import Contact Server Actions
+import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
+import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client" // Import client-side Supabase client
 
@@ -106,38 +103,35 @@ interface Product {
   is_hot?: boolean
   created_at?: string
   updated_at?: string
-  name: string
 }
 
 // Define a type for your blog post data
-// interface BlogPostType {
-//   id: string
-//   title: string
-//   excerpt?: string
-//   content: string
-//   author: string
-//   tags?: string[]
-//   category?: string
-//   read_time?: string
-//   image_url?: string
-//   is_published: boolean
-//   created_at: string
-//   published_at: string
-//   updated_at?: string
-//   views?: number
-// }
+interface BlogPost {
+  id: string
+  title: string
+  excerpt?: string
+  content: string
+  author: string
+  tags?: string[]
+  category?: string
+  read_time?: string
+  image_url?: string
+  is_published: boolean
+  created_at: string
+  published_at: string
+  updated_at?: string
+  views?: number
+}
 
 // Define a type for contact messages
-// interface ContactMessageType {
-//   id: string
-//   name: string
-//   email: string
-//   message: string
-//   status: "new" | "read" | "archived"
-//   created_at: string
-//   subject: string
-//   is_read: boolean
-// }
+interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  message: string
+  status: "new" | "read" | "archived"
+  created_at: string
+}
 
 // Define a type for customer data
 interface Customer {
@@ -145,15 +139,12 @@ interface Customer {
   first_name: string
   last_name: string
   email: string
-  phone?: string
-  address?: string
-  city?: string
-  postal_code?: string
-  country?: string // Added country field
+  phone: string | null
+  address: string | null
+  city: string | null
+  postal_code: string | null
   created_at: string
-  updated_at?: string
-  phone_number: string
-  street_address: string
+  updated_at: string | null
 }
 
 const initialState = {
@@ -293,12 +284,10 @@ const permissions = [
   { id: "users", name: "User Management", description: "Manage users and permissions" },
 ]
 
-export const dynamic = "force-dynamic"
-
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAddProductOpen, setIsAddProductOpen] = useState(isSidebarOpen)
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false)
   const [isAddBlogOpen, setIsAddBlogOpen] = useState(false)
   const [isEditProductOpen, setIsEditProductOpen] = useState(false)
   const [isEditBlogOpen, setIsEditBlogOpen] = useState(false)
@@ -309,13 +298,13 @@ export default function AdminDashboard() {
   const [isAddRoleOpen, setIsAddRoleOpen] = useState(false)
   const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
   const [isViewContactMessageOpen, setIsViewContactMessageOpen] = useState(false) // New state for contact message modal
-  const [viewingContactMessage, setViewingContactMessage] = useState<ContactMessageType | null>(null) // New state for viewing contact message
+  const [viewingContactMessage, setViewingContactMessage] = useState<ContactMessage | null>(null) // New state for viewing contact message
 
   const [deleteItem, setDeleteItem] = useState<{ type: string; id: string; name: string; imageUrl?: string } | null>(
     null,
   )
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [editingBlog, setEditingBlog] = useState<BlogPostType | null>(null)
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null)
   const [viewingOrder, setViewingOrder] = useState<any>(null)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [editingRole, setEditingRole] = useState<any>(null)
@@ -324,11 +313,11 @@ export default function AdminDashboard() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [errorProducts, setErrorProducts] = useState<string | null>(null)
 
-  const [blogPosts, setBlogPosts] = useState<BlogPostType[]>([])
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
   const [loadingBlogPosts, setLoadingBlogPosts] = useState(true)
   const [errorBlogPosts, setErrorBlogPosts] = useState<string | null>(null)
 
-  const [contactMessages, setContactMessages] = useState<ContactMessageType[]>([]) // New state for contact messages
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]) // New state for contact messages
   const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
@@ -464,7 +453,7 @@ export default function AdminDashboard() {
     setIsViewOrderOpen(true)
   }
 
-  const handleViewContactMessage = (message: ContactMessageType) => {
+  const handleViewContactMessage = (message: ContactMessage) => {
     setViewingContactMessage(message)
     setIsViewContactMessageOpen(true)
     // Optionally mark as read when viewed
@@ -2326,24 +2315,7 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* Delete Alert Dialog */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. Are you sure you want to delete {deleteItem ? deleteItem.name : "this item"}
-              ?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAction}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Product Dialog */}
+      {/* Edit Product Modal */}
       <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2380,7 +2352,6 @@ export default function AdminDashboard() {
                   name="price"
                   type="number"
                   step="0.01"
-                  placeholder="1700"
                   defaultValue={editingProduct?.price}
                   required
                 />
@@ -2406,8 +2377,7 @@ export default function AdminDashboard() {
                 name="stock"
                 type="number"
                 min="0"
-                placeholder="0"
-                defaultValue={editingProduct?.stock}
+                defaultValue={editingProduct?.stock ?? 0}
                 required
               />
             </div>
@@ -2416,35 +2386,37 @@ export default function AdminDashboard() {
               <Textarea
                 id="editDescription"
                 name="description"
+                defaultValue={editingProduct?.description || ""}
                 placeholder="Enter book description"
                 rows={4}
-                defaultValue={editingProduct?.description}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="editAgeRange">Age Range</Label>
-                <Input
-                  id="editAgeRange"
-                  name="ageRange"
-                  placeholder="7-14 years"
-                  defaultValue={editingProduct?.age_range}
-                />
+                <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
               </div>
               <div>
                 <Label htmlFor="editPages">Number of Pages</Label>
-                <Input
-                  id="editPages"
-                  name="pages"
-                  type="number"
-                  placeholder="32"
-                  defaultValue={editingProduct?.pages}
-                />
+                <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
               </div>
             </div>
             <div>
               <Label htmlFor="editImage">Book Cover</Label>
+              {editingProduct.image_url && (
+                <div className="mb-2">
+                  <Image
+                    src={editingProduct.image_url || "/placeholder.svg"}
+                    alt="Current Book Cover"
+                    width={80}
+                    height={100}
+                    className="rounded object-cover"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Current image</p>
+                </div>
+              )}
               <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+              <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
             </div>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
@@ -2456,157 +2428,256 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Blog Post Dialog */}
+      {/* Edit Blog Modal */}
       <Dialog open={isEditBlogOpen} onOpenChange={setIsEditBlogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Blog Post</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="editBlogTitle">Post Title</Label>
-              <Input
-                id="editBlogTitle"
-                name="title"
-                placeholder="Enter post title"
-                defaultValue={editingBlog?.title}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {editingBlog && (
+            <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="editBlogAuthor">Author</Label>
-                <Input
-                  id="editBlogAuthor"
-                  name="author"
-                  defaultValue={editingBlog?.author || "Cheryl Nyakio"}
+                <Label htmlFor="editBlogTitle">Post Title</Label>
+                <Input id="editBlogTitle" name="title" defaultValue={editingBlog.title || ""} required />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editBlogAuthor">Author</Label>
+                  <Input id="editBlogAuthor" name="author" defaultValue={editingBlog.author || ""} required />
+                </div>
+                <div>
+                  <Label htmlFor="editBlogCategory">Category</Label>
+                  <Select name="category" defaultValue={editingBlog.category || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parenting">Parenting Tips</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="culture">Cultural Stories</SelectItem>
+                      <SelectItem value="development">Child Development</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editBlogExcerpt">Excerpt</Label>
+                <Textarea
+                  id="editBlogExcerpt"
+                  name="excerpt"
+                  defaultValue={editingBlog.excerpt || ""}
+                  placeholder="Brief description of the post"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBlogContent">Content</Label>
+                <Textarea
+                  id="editBlogContent"
+                  name="content"
+                  defaultValue={editingBlog.content || ""}
+                  placeholder="Write your blog post content here..."
+                  rows={10}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editBlogCategory">Category</Label>
-                <Select name="category" defaultValue={editingBlog?.category}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="parenting">Parenting Tips</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="culture">Cultural Stories</SelectItem>
-                    <SelectItem value="development">Child Development</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="editBlogTags">Tags</Label>
+                <Input
+                  id="editBlogTags"
+                  name="tags"
+                  defaultValue={editingBlog.tags?.join(", ") || ""}
+                  placeholder="parenting, children, culture (comma separated)"
+                />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="editBlogExcerpt">Excerpt</Label>
-              <Textarea
-                id="editBlogExcerpt"
-                name="excerpt"
-                placeholder="Brief description of the post"
-                rows={3}
-                defaultValue={editingBlog?.excerpt}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editBlogContent">Content</Label>
-              <Textarea
-                id="editBlogContent"
-                name="content"
-                placeholder="Write your blog post content here..."
-                rows={10}
-                defaultValue={editingBlog?.content}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="editBlogTags">Tags</Label>
-              <Input
-                id="editBlogTags"
-                name="tags"
-                placeholder="parenting, children, culture (comma separated)"
-                defaultValue={editingBlog?.tags?.join(", ")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="editFeaturedImage">Featured Image</Label>
-              <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog?.is_published} />
-              <Label htmlFor="editPublishNow">Publish immediately</Label>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Update Post</Button>
-            </div>
-          </form>
+              <div>
+                <Label htmlFor="editFeaturedImage">Featured Image</Label>
+                <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+                <input type="hidden" name="currentImageUrl" value={editingBlog.image_url || ""} />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog.is_published} />
+                <Label htmlFor="editPublishNow">Publish immediately</Label>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Post</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* View Order Dialog */}
+      {/* View Order Modal */}
       <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>View Order Details</DialogTitle>
+            <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
           {viewingOrder && (
-            <div className="space-y-4">
-              <div>
-                <Label>Order ID</Label>
-                <Input value={viewingOrder.id} readOnly />
+            <div className="space-y-6">
+              {/* Order Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
+                  <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p>
+                </div>
+                <Badge
+                  className={
+                    viewingOrder.status === "completed"
+                      ? "bg-green-100 text-green-800"
+                      : viewingOrder.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-blue-100 text-blue-800"
+                  }
+                >
+                  {viewingOrder.status.toUpperCase()}
+                </Badge>
               </div>
-              <div>
-                <Label>Customer Name</Label>
-                <Input value={viewingOrder.customer} readOnly />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Customer Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Customer Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{viewingOrder.customer}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{viewingOrder.customerEmail}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{viewingOrder.customerPhone}</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <span className="text-sm">{viewingOrder.customerAddress}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Order Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Order Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">
+                        {viewingOrder.date} at {viewingOrder.time}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CreditCard className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{viewingOrder.paymentMethod}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold">{formatPrice(viewingOrder.amount)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div>
-                <Label>Book</Label>
-                <Input value={viewingOrder.book} readOnly />
+
+              {/* Product Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Product Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <Image
+                      src="/placeholder.svg?height=100&width=80"
+                      alt={viewingOrder.book}
+                      width={80}
+                      height={100}
+                      className="rounded-lg mx-auto sm:mx-0"
+                    />
+                    <div className="flex-1 text-center sm:text-left">
+                      <h4 className="font-semibold text-lg">{viewingOrder.book}</h4>
+                      <p className="text-sm text-gray-600">by Cheryl Nyakio</p>
+                      <div className="flex items-center justify-center sm:justify-start space-x-2 mt-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < Math.floor(viewingOrder.reviews) ? "text-yellow-400 fill-current" : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          {viewingOrder.reviews} ({viewingOrder.totalReviews} reviews)
+                        </span>
+                      </div>
+                      <p className="text-lg font-bold text-green-600 mt-2">{formatPrice(viewingOrder.amount)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium">Order Placed</p>
+                        <p className="text-sm text-gray-500">
+                          {viewingOrder.date} at {viewingOrder.time}
+                        </p>
+                      </div>
+                    </div>
+                    {viewingOrder.status !== "pending" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Payment Confirmed</p>
+                          <p className="text-sm text-gray-500">Payment via {viewingOrder.paymentMethod}</p>
+                        </div>
+                      </div>
+                    )}
+                    {viewingOrder.status === "shipped" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Order Shipped</p>
+                          <p className="text-sm text-gray-500">Package is on the way</p>
+                        </div>
+                      </div>
+                    )}
+                    {viewingOrder.status === "completed" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Order Delivered</p>
+                          <p className="text-sm text-gray-500">Successfully delivered to customer</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
+                  Close
+                </Button>
+                <Button>Update Status</Button>
               </div>
-              <div>
-                <Label>Amount</Label>
-                <Input value={formatPrice(viewingOrder.amount)} readOnly />
-              </div>
-              <div>
-                <Label>Status</Label>
-                <Input value={viewingOrder.status} readOnly />
-              </div>
-              <div>
-                <Label>Date</Label>
-                <Input value={viewingOrder.date} readOnly />
-              </div>
-              <div>
-                <Label>Time</Label>
-                <Input value={viewingOrder.time} readOnly />
-              </div>
-              <div>
-                <Label>Payment Method</Label>
-                <Input value={viewingOrder.paymentMethod} readOnly />
-              </div>
-              <div>
-                <Label>Transaction ID</Label>
-                <Input value={viewingOrder.transactionId} readOnly />
-              </div>
-              <div>
-                <Label>Customer Email</Label>
-                <Input value={viewingOrder.customerEmail} readOnly />
-              </div>
-              <div>
-                <Label>Customer Phone</Label>
-                <Input value={viewingOrder.customerPhone} readOnly />
-              </div>
-              <div>
-                <Label>Customer Address</Label>
-                <Input value={viewingOrder.customerAddress} readOnly />
-              </div>
-              <div>
-                <Label>Reviews</Label>
-                <Input value={`${viewingOrder.reviews} (${viewingOrder.totalReviews} reviews)`} readOnly />
-              </div>
-              <Button onClick={() => setIsViewOrderOpen(false)}>Close</Button>
             </div>
           )}
         </DialogContent>
@@ -2616,35 +2687,90 @@ export default function AdminDashboard() {
       <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>View Contact Message</DialogTitle>
+            <DialogTitle>Contact Message Details</DialogTitle>
           </DialogHeader>
           {viewingContactMessage && (
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
-                <Input value={viewingContactMessage.name} readOnly />
+                <Label className="text-sm font-medium">From:</Label>
+                <p className="text-base">{viewingContactMessage.name}</p>
               </div>
               <div>
-                <Label>Email</Label>
-                <Input value={viewingContactMessage.email} readOnly />
+                <Label className="text-sm font-medium">Email:</Label>
+                <p className="text-base">{viewingContactMessage.email}</p>
               </div>
               <div>
-                <Label>Message</Label>
-                <Textarea value={viewingContactMessage.message} readOnly />
+                <Label className="text-sm font-medium">Date:</Label>
+                <p className="text-base">{new Date(viewingContactMessage.created_at).toLocaleString()}</p>
               </div>
               <div>
-                <Label>Status</Label>
-                <Input value={viewingContactMessage.status} readOnly />
+                <Label className="text-sm font-medium">Status:</Label>
+                <Badge
+                  className={
+                    viewingContactMessage.status === "new"
+                      ? "bg-blue-100 text-blue-800"
+                      : viewingContactMessage.status === "read"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {viewingContactMessage.status.charAt(0).toUpperCase() + viewingContactMessage.status.slice(1)}
+                </Badge>
               </div>
               <div>
-                <Label>Date</Label>
-                <Input value={new Date(viewingContactMessage.created_at).toLocaleDateString()} readOnly />
+                <Label className="text-sm font-medium">Message:</Label>
+                <p className="text-base whitespace-pre-wrap">{viewingContactMessage.message}</p>
               </div>
-              <Button onClick={() => setIsViewContactMessageOpen(false)}>Close</Button>
+              <div className="flex justify-end space-x-2">
+                {viewingContactMessage.status !== "archived" && (
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "archived")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <Archive className="w-4 h-4 mr-2" /> Archive
+                  </Button>
+                )}
+                {viewingContactMessage.status !== "read" && (
+                  <Button
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "read")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Read
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {deleteItem?.type} "{deleteItem?.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
