@@ -142,16 +142,40 @@ export default function BooksPage() {
       {/* Hero Section */}
       <section className="bg-green-800 py-12">
         <div className="container mx-auto px-4">
-          <div className="text-center text-white">
-            <h1 className="text-2xl font-bold text-orange-400 mb-2">A Powerful Story for Children</h1>
-            <h2 className="text-3xl font-bold mb-4">to Discover Their Voice</h2>
-            <p className="max-w-3xl mx-auto text-green-200 leading-relaxed">
-              Colours of Me is more than a children's book, it's a journey into self-discovery. Rooted in African
-              heritage and written to empower young minds, this beautifully illustrated story helps children understand
-              their feelings, stand firm in who they are, and express themselves with confidence and kindness.
-            </p>
+          <div className="flex flex-col lg:flex-row items-center lg:justify-between gap-8">
+            {/* Left Column: Text Content */}
+            <div className="lg:w-1/2 text-center lg:text-left text-white">
+              <h1 className="text-2xl font-bold text-orange-400 mb-2">A Powerful Story for Children</h1>
+              <h2 className="text-3xl font-bold mb-4">to Discover Their Voice</h2>
+              <p className="max-w-3xl mx-auto lg:mx-0 text-green-200 leading-relaxed">
+                The world and everything in it is a wonderful experience. The stories in this book invite every child to
+                freely enjoy it with calm hearts, curious minds, and thankful eyes. Through the adventures of the
+                characters, you'll see yourself in their place and discover that, just like them, you have the power to
+                shape your own experiences. Your adventurous self will uncover something powerful: your superpower, your
+                magical self, isn't out there – it's already inside you. Because every moment brings you a choice, and
+                in the present, anything is possible. So, what choice are you making this moment?
+              </p>
+            </div>
+            {/* Right Column: Images */}
+            <div className="lg:w-1/2 flex justify-center lg:justify-end gap-4">
+              <Image
+                src="/images/colours-of-me-front.jpg"
+                alt="Colours of Me Front Cover"
+                width={250}
+                height={350}
+                className="rounded-lg shadow-lg"
+              />
+              <Image
+                src="/images/colours-of-me-back.png"
+                alt="Colours of Me Back Cover"
+                width={250}
+                height={350}
+                className="rounded-lg shadow-lg"
+              />
+            </div>
           </div>
 
+          {/* Badges Section */}
           <div className="flex justify-center mt-8">
             <div className="flex gap-8 text-center text-white">
               <div>
@@ -191,10 +215,9 @@ export default function BooksPage() {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{mainBook.title}</h1>{" "}
               {/* Dynamic title */}
               <Badge className="bg-green-600 text-white mb-4">By {mainBook.author}</Badge> {/* Dynamic author */}
-              
               <p className="text-xl md:text-2xl font-bold text-orange-500 mb-2">{formatPrice(mainBook.price)}</p>{" "}
               {/* Dynamic price */}
-              <p className="text-md  font-bold">In Stock:  {mainBook.stock}</p> {/* Dynamic stock count */}
+              <p className="text-md  font-bold">In Stock: {mainBook.stock}</p> {/* Dynamic stock count */}
               <p className="text-gray-600 mb-6 leading-relaxed">
                 {mainBook.description} {/* Dynamic description */}
               </p>
