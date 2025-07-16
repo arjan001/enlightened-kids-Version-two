@@ -27,7 +27,7 @@ export async function processCheckout(
   const address = String(formData.get("address"))
   const city = String(formData.get("city"))
   const postalCode = String(formData.get("postalCode"))
-  const country = String(formData.get("country"))
+  const country = String(formData.get("country")) // Get the new country field
 
   let customerId: string | null = null
 
@@ -56,7 +56,7 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
-          country,
+          country, // Update country field
           updated_at: new Date().toISOString(),
         })
         .eq("id", customerId)
@@ -78,7 +78,7 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
-          country,
+          country, // Insert country field
         })
         .select("id")
         .single()

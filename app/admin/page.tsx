@@ -31,18 +31,11 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Star,
-  Calendar,
-  MapPin,
-  Phone,
-  Mail,
   UserPlus,
   Key,
   Menu,
   X,
   MessageSquare,
-  CheckCircle,
-  Archive,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -142,7 +135,7 @@ interface Customer {
   address?: string
   city?: string
   postal_code?: string
-  country?: string
+  country?: string // Added country field
   created_at: string
   updated_at?: string
 }
@@ -1747,7 +1740,9 @@ export default function AdminDashboard() {
                             <TableHead className="min-w-[250px]">Address</TableHead>
                             <TableHead className="min-w-[100px]">City</TableHead>
                             <TableHead className="min-w-[100px]">Country</TableHead>
-                            <TableHead className="min-w-[100px]">Created At</TableHead>
+                            <TableHead className className="min-w-[100px]">
+                              Created At
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -2201,15 +2196,15 @@ export default function AdminDashboard() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <CardTitle>All Messages</CardTitle>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                      <Select defaultValue="all">
+                      <Select defaultValue="new">
                         <SelectTrigger className="w-full sm:w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
                           <SelectItem value="new">New</SelectItem>
                           <SelectItem value="read">Read</SelectItem>
                           <SelectItem value="archived">Archived</SelectItem>
+                          <SelectItem value="all">All</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="relative">
@@ -2220,7 +2215,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {loadingContactMessages && <p>Loading messages...</p>}
+                  {loadingContactMessages && <p>Loading contact messages...</p>}
                   {errorContactMessages && <p className="text-red-500">Error: {errorContactMessages}</p>}
                   {!loadingContactMessages && !errorContactMessages && contactMessages.length === 0 && (
                     <p>No contact messages found.</p>
@@ -2230,23 +2225,20 @@ export default function AdminDashboard() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[150px]">Sender</TableHead>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
                             <TableHead className="min-w-[200px]">Email</TableHead>
-                            <TableHead className="min-w-[250px]">Subject/Excerpt</TableHead>
-                            <TableHead className="min-w-[100px]">Status</TableHead>
-                            <TableHead className="min-w-[120px]">Date</TableHead>
+                            <TableHead className="min-w-[300px]">Message</TableHead>
+                            <TableHead className="min-w-[150px]">Status</TableHead>
+                            <TableHead className="min-w-[150px]">Date</TableHead>
                             <TableHead className="min-w-[120px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {contactMessages.map((message) => (
-                            <TableRow key={message.id} className={message.status === "new" ? "bg-blue-50/50" : ""}>
-                              <TableCell className="font-medium">{message.name}</TableCell>
+                            <TableRow key={message.id}>
+                              <TableCell>{message.name}</TableCell>
                               <TableCell>{message.email}</TableCell>
-                              <TableCell className="truncate max-w-xs">
-                                {message.message.substring(0, 50)}
-                                {message.message.length > 50 ? "..." : ""}
-                              </TableCell>
+                              <TableCell>{message.message}</TableCell>
                               <TableCell>
                                 <Badge
                                   className={
@@ -2257,7 +2249,7 @@ export default function AdminDashboard() {
                                         : "bg-gray-100 text-gray-800"
                                   }
                                 >
-                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
+                                  {message.status}
                                 </Badge>
                               </TableCell>
                               <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
@@ -2266,13 +2258,41 @@ export default function AdminDashboard() {
                                   <Button variant="outline" size="sm" onClick={() => handleViewContactMessage(message)}>
                                     <Eye className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDelete("contact-message", message.id, message.name)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open dropdown menu</span>
+                                        <ChevronDown className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {message.status === "new" && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            updateContactMessageStatus(message.id, "read")
+                                            fetchContactMessages()
+                                          }}
+                                        >
+                                          Mark as Read
+                                        </DropdownMenuItem>
+                                      )}
+                                      {message.status !== "archived" && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            updateContactMessageStatus(message.id, "archived")
+                                            fetchContactMessages()
+                                          }}
+                                        >
+                                          Archive
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete("contact-message", message.id, message.name)}
+                                      >
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -2288,597 +2308,325 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* Edit Product Modal */}
+      {/* Delete Alert Dialog */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete {deleteItem ? deleteItem.name : "this item"}
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAction}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Product Dialog */}
       <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
-          {editingProduct && (
-            <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editTitle">Book Title</Label>
-                  <Input id="editTitle" name="title" defaultValue={editingProduct.title} required />
-                </div>
-                <div>
-                  <Label htmlFor="editAuthor">Author</Label>
-                  <Input id="editAuthor" name="author" defaultValue={editingProduct.author} required />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editPrice">Price (KES)</Label>
-                  <Input
-                    id="editPrice"
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    defaultValue={editingProduct.price}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="editCategory">Category</Label>
-                  <Select name="category" defaultValue={editingProduct.category}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="children">Children's Books</SelectItem>
-                      <SelectItem value="educational">Educational</SelectItem>
-                      <SelectItem value="cultural">Cultural Stories</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editStock">Stock</Label>
+                <Label htmlFor="editTitle">Book Title</Label>
                 <Input
-                  id="editStock"
-                  name="stock"
-                  type="number"
-                  min="0"
-                  defaultValue={editingProduct.stock ?? 0}
+                  id="editTitle"
+                  name="title"
+                  placeholder="Enter book title"
+                  defaultValue={editingProduct?.title}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editDescription">Description</Label>
-                <Textarea
-                  id="editDescription"
-                  name="description"
-                  defaultValue={editingProduct.description || ""}
-                  placeholder="Enter book description"
-                  rows={4}
+                <Label htmlFor="editAuthor">Author</Label>
+                <Input
+                  id="editAuthor"
+                  name="author"
+                  placeholder="Enter author name"
+                  defaultValue={editingProduct?.author}
+                  required
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editAgeRange">Age Range</Label>
-                  <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
-                </div>
-                <div>
-                  <Label htmlFor="editPages">Number of Pages</Label>
-                  <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
-                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editPrice">Price (KES)</Label>
+                <Input
+                  id="editPrice"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  placeholder="1700"
+                  defaultValue={editingProduct?.price}
+                  required
+                />
               </div>
               <div>
-                <Label htmlFor="editImage">Book Cover</Label>
-                {editingProduct.image_url && (
-                  <div className="mb-2">
-                    <Image
-                      src={editingProduct.image_url || "/placeholder.svg"}
-                      alt="Current Book Cover"
-                      width={80}
-                      height={100}
-                      className="rounded object-cover"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Current image</p>
-                  </div>
-                )}
-                <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-                <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
+                <Label htmlFor="editCategory">Category</Label>
+                <Select name="category" defaultValue={editingProduct?.category}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="children">Children's Books</SelectItem>
+                    <SelectItem value="educational">Educational</SelectItem>
+                    <SelectItem value="cultural">Cultural Stories</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update Product</Button>
+            </div>
+            <div>
+              <Label htmlFor="editStock">Stock</Label>
+              <Input
+                id="editStock"
+                name="stock"
+                type="number"
+                min="0"
+                placeholder="0"
+                defaultValue={editingProduct?.stock}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="editDescription">Description</Label>
+              <Textarea
+                id="editDescription"
+                name="description"
+                placeholder="Enter book description"
+                rows={4}
+                defaultValue={editingProduct?.description}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editAgeRange">Age Range</Label>
+                <Input
+                  id="editAgeRange"
+                  name="ageRange"
+                  placeholder="7-14 years"
+                  defaultValue={editingProduct?.age_range}
+                />
               </div>
-            </form>
-          )}
+              <div>
+                <Label htmlFor="editPages">Number of Pages</Label>
+                <Input
+                  id="editPages"
+                  name="pages"
+                  type="number"
+                  placeholder="32"
+                  defaultValue={editingProduct?.pages}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editImage">Book Cover</Label>
+              <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Product</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Blog Modal */}
+      {/* Edit Blog Post Dialog */}
       <Dialog open={isEditBlogOpen} onOpenChange={setIsEditBlogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Blog Post</DialogTitle>
           </DialogHeader>
-          {editingBlog && (
-            <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
+          <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="editBlogTitle">Post Title</Label>
+              <Input
+                id="editBlogTitle"
+                name="title"
+                placeholder="Enter post title"
+                defaultValue={editingBlog?.title}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editBlogTitle">Post Title</Label>
-                <Input id="editBlogTitle" name="title" defaultValue={editingBlog.title || ""} required />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editBlogAuthor">Author</Label>
-                  <Input id="editBlogAuthor" name="author" defaultValue={editingBlog.author || ""} required />
-                </div>
-                <div>
-                  <Label htmlFor="editBlogCategory">Category</Label>
-                  <Select name="category" defaultValue={editingBlog.category || ""}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parenting">Parenting Tips</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="culture">Cultural Stories</SelectItem>
-                      <SelectItem value="development">Child Development</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="editBlogExcerpt">Excerpt</Label>
-                <Textarea
-                  id="editBlogExcerpt"
-                  name="excerpt"
-                  defaultValue={editingBlog.excerpt || ""}
-                  placeholder="Brief description of the post"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label htmlFor="editBlogContent">Content</Label>
-                <Textarea
-                  id="editBlogContent"
-                  name="content"
-                  defaultValue={editingBlog.content || ""}
-                  placeholder="Write your blog post content here..."
-                  rows={10}
+                <Label htmlFor="editBlogAuthor">Author</Label>
+                <Input
+                  id="editBlogAuthor"
+                  name="author"
+                  defaultValue={editingBlog?.author || "Cheryl Nyakio"}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editBlogTags">Tags</Label>
-                <Input
-                  id="editBlogTags"
-                  name="tags"
-                  defaultValue={editingBlog.tags?.join(", ") || ""}
-                  placeholder="parenting, children, culture (comma separated)"
-                />
-              </div>
-              <div>
-                <Label htmlFor="editFeaturedImage">Featured Image</Label>
-                {editingBlog.image_url && (
-                  <div className="mb-2">
-                    <Image
-                      src={editingBlog.image_url || "/placeholder.svg"}
-                      alt="Current Blog Image"
-                      width={80}
-                      height={80}
-                      className="rounded object-cover"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Current image</p>
-                  </div>
-                )}
-                <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-                <input type="hidden" name="currentImageUrl" value={editingBlog.image_url || ""} />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog.is_published} />
-                <Label htmlFor="editPublishNow">Publish immediately</Label>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update Post</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit User Modal */}
-      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editUserName">Full Name</Label>
-                <Input id="editUserName" defaultValue={editingUser?.name || ""} />
-              </div>
-              <div>
-                <Label htmlFor="editUserEmail">Email Address</Label>
-                <Input id="editUserEmail" type="email" defaultValue={editingUser?.email || ""} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editUserRole">Role</Label>
-                <Select defaultValue={editingUser?.role?.toLowerCase()}>
+                <Label htmlFor="editBlogCategory">Category</Label>
+                <Select name="category" defaultValue={editingBlog?.category}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={role.name.toLowerCase()}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="editUserStatus">Status</Label>
-                <Select defaultValue={editingUser?.status}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="parenting">Parenting Tips</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="culture">Cultural Stories</SelectItem>
+                    <SelectItem value="development">Child Development</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label>Permissions</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {permissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`edit-${permission.id}`}
-                      className="rounded border-gray-300"
-                      defaultChecked={editingUser?.permissions?.includes(permission.id)}
-                    />
-                    <Label htmlFor={`edit-${permission.id}`} className="text-sm">
-                      {permission.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="editBlogExcerpt">Excerpt</Label>
+              <Textarea
+                id="editBlogExcerpt"
+                name="excerpt"
+                placeholder="Brief description of the post"
+                rows={3}
+                defaultValue={editingBlog?.excerpt}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editBlogContent">Content</Label>
+              <Textarea
+                id="editBlogContent"
+                name="content"
+                placeholder="Write your blog post content here..."
+                rows={10}
+                defaultValue={editingBlog?.content}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="editBlogTags">Tags</Label>
+              <Input
+                id="editBlogTags"
+                name="tags"
+                placeholder="parenting, children, culture (comma separated)"
+                defaultValue={editingBlog?.tags?.join(", ")}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editFeaturedImage">Featured Image</Label>
+              <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog?.is_published} />
+              <Label htmlFor="editPublishNow">Publish immediately</Label>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={() => {
-                  console.log("Updating user...")
-                  setIsEditUserOpen(false)
-                  setEditingUser(null)
-                }}
-              >
-                Update User
-              </Button>
+              <Button type="submit">Update Post</Button>
             </div>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Modal */}
-      <Dialog open={isEditRoleOpen} onOpenChange={setIsEditRoleOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Role</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="editRoleName">Role Name</Label>
-              <Input id="editRoleName" defaultValue={editingRole?.name || ""} />
-            </div>
-            <div>
-              <Label htmlFor="editRoleDescription">Description</Label>
-              <Textarea id="editRoleDescription" defaultValue={editingRole?.description || ""} rows={3} />
-            </div>
-            <div>
-              <Label>Permissions</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {permissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`edit-role-${permission.id}`}
-                      className="rounded border-gray-300"
-                      defaultChecked={editingRole?.permissions?.includes(permission.id)}
-                    />
-                    <Label htmlFor={`edit-role-${permission.id}`} className="text-sm">
-                      {permission.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditRoleOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  console.log("Updating role...")
-                  setIsEditRoleOpen(false)
-                  setEditingRole(null)
-                }}
-              >
-                Update Role
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Order Modal */}
+      {/* View Order Dialog */}
       <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
+            <DialogTitle>View Order Details</DialogTitle>
           </DialogHeader>
           {viewingOrder && (
-            <div className="space-y-6">
-              {/* Order Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
-                  <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p>
-                </div>
-                <Badge
-                  className={
-                    viewingOrder.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : viewingOrder.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-blue-100 text-blue-800"
-                  }
-                >
-                  {viewingOrder.status.toUpperCase()}
-                </Badge>
+            <div className="space-y-4">
+              <div>
+                <Label>Order ID</Label>
+                <Input value={viewingOrder.id} readOnly />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Customer Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Customer Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{viewingOrder.customer}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.customerEmail}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.customerPhone}</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <span className="text-sm">{viewingOrder.customerAddress}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Order Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Order Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">
-                        {viewingOrder.date} at {viewingOrder.time}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.paymentMethod}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-4 h-4 text-gray-500" />
-                      <span className="font-semibold">{formatPrice(viewingOrder.amount)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div>
+                <Label>Customer Name</Label>
+                <Input value={viewingOrder.customer} readOnly />
               </div>
-
-              {/* Product Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Product Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                    <Image
-                      src="/placeholder.svg?height=100&width=80"
-                      alt={viewingOrder.book}
-                      width={80}
-                      height={100}
-                      className="rounded-lg mx-auto sm:mx-0"
-                    />
-                    <div className="flex-1 text-center sm:text-left">
-                      <h4 className="font-semibold text-lg">{viewingOrder.book}</h4>
-                      <p className="text-sm text-gray-600">by Cheryl Nyakio</p>
-                      <div className="flex items-center justify-center sm:justify-start space-x-2 mt-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < Math.floor(viewingOrder.reviews) ? "text-yellow-400 fill-current" : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600">
-                          {viewingOrder.reviews} ({viewingOrder.totalReviews} reviews)
-                        </span>
-                      </div>
-                      <p className="text-lg font-bold text-green-600 mt-2">{formatPrice(viewingOrder.amount)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Order Timeline */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Order Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <div>
-                        <p className="font-medium">Order Placed</p>
-                        <p className="text-sm text-gray-500">
-                          {viewingOrder.date} at {viewingOrder.time}
-                        </p>
-                      </div>
-                    </div>
-                    {viewingOrder.status !== "pending" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Payment Confirmed</p>
-                          <p className="text-sm text-gray-500">Payment via {viewingOrder.paymentMethod}</p>
-                        </div>
-                      </div>
-                    )}
-                    {viewingOrder.status === "shipped" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Order Shipped</p>
-                          <p className="text-sm text-gray-500">Package is on the way</p>
-                        </div>
-                      </div>
-                    )}
-                    {viewingOrder.status === "completed" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Order Delivered</p>
-                          <p className="text-sm text-gray-500">Successfully delivered to customer</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
-                  Close
-                </Button>
-                <Button>Update Status</Button>
+              <div>
+                <Label>Book</Label>
+                <Input value={viewingOrder.book} readOnly />
               </div>
+              <div>
+                <Label>Amount</Label>
+                <Input value={formatPrice(viewingOrder.amount)} readOnly />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Input value={viewingOrder.status} readOnly />
+              </div>
+              <div>
+                <Label>Date</Label>
+                <Input value={viewingOrder.date} readOnly />
+              </div>
+              <div>
+                <Label>Time</Label>
+                <Input value={viewingOrder.time} readOnly />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Input value={viewingOrder.paymentMethod} readOnly />
+              </div>
+              <div>
+                <Label>Transaction ID</Label>
+                <Input value={viewingOrder.transactionId} readOnly />
+              </div>
+              <div>
+                <Label>Customer Email</Label>
+                <Input value={viewingOrder.customerEmail} readOnly />
+              </div>
+              <div>
+                <Label>Customer Phone</Label>
+                <Input value={viewingOrder.customerPhone} readOnly />
+              </div>
+              <div>
+                <Label>Customer Address</Label>
+                <Input value={viewingOrder.customerAddress} readOnly />
+              </div>
+              <div>
+                <Label>Reviews</Label>
+                <Input value={`${viewingOrder.reviews} (${viewingOrder.totalReviews} reviews)`} readOnly />
+              </div>
+              <Button onClick={() => setIsViewOrderOpen(false)}>Close</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* View Contact Message Modal */}
+      {/* View Contact Message Dialog */}
       <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Contact Message Details</DialogTitle>
+            <DialogTitle>View Contact Message</DialogTitle>
           </DialogHeader>
           {viewingContactMessage && (
             <div className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">From:</Label>
-                <p className="text-base">{viewingContactMessage.name}</p>
+                <Label>Name</Label>
+                <Input value={viewingContactMessage.name} readOnly />
               </div>
               <div>
-                <Label className="text-sm font-medium">Email:</Label>
-                <p className="text-base">{viewingContactMessage.email}</p>
+                <Label>Email</Label>
+                <Input value={viewingContactMessage.email} readOnly />
               </div>
               <div>
-                <Label className="text-sm font-medium">Date:</Label>
-                <p className="text-base">{new Date(viewingContactMessage.created_at).toLocaleString()}</p>
+                <Label>Message</Label>
+                <Textarea value={viewingContactMessage.message} readOnly />
               </div>
               <div>
-                <Label className="text-sm font-medium">Status:</Label>
-                <Badge
-                  className={
-                    viewingContactMessage.status === "new"
-                      ? "bg-blue-100 text-blue-800"
-                      : viewingContactMessage.status === "read"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                  }
-                >
-                  {viewingContactMessage.status.charAt(0).toUpperCase() + viewingContactMessage.status.slice(1)}
-                </Badge>
+                <Label>Status</Label>
+                <Input value={viewingContactMessage.status} readOnly />
               </div>
               <div>
-                <Label className="text-sm font-medium">Message:</Label>
-                <p className="text-base whitespace-pre-wrap">{viewingContactMessage.message}</p>
+                <Label>Date</Label>
+                <Input value={new Date(viewingContactMessage.created_at).toLocaleDateString()} readOnly />
               </div>
-              <div className="flex justify-end space-x-2">
-                {viewingContactMessage.status !== "archived" && (
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      await updateContactMessageStatus(viewingContactMessage.id, "archived")
-                      fetchContactMessages()
-                      setIsViewContactMessageOpen(false)
-                    }}
-                  >
-                    <Archive className="w-4 h-4 mr-2" /> Archive
-                  </Button>
-                )}
-                {viewingContactMessage.status !== "read" && (
-                  <Button
-                    onClick={async () => {
-                      await updateContactMessageStatus(viewingContactMessage.id, "read")
-                      fetchContactMessages()
-                      setIsViewContactMessageOpen(false)
-                    }}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Read
-                  </Button>
-                )}
-                <Button variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
-                  Close
-                </Button>
-              </div>
+              <Button onClick={() => setIsViewContactMessageOpen(false)}>Close</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Alert */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the {deleteItem?.type} "{deleteItem?.name}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
