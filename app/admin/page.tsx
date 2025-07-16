@@ -78,7 +78,7 @@ import {
   Cell,
 } from "recharts"
 import Image from "next/image"
-import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser } from "./actions" // Import Product Server Actions and signOutUser
+import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers } from "./actions" // Import Product Server Actions and signOutUser, getCustomers
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
@@ -130,6 +130,21 @@ interface ContactMessage {
   message: string
   status: "new" | "read" | "archived"
   created_at: string
+}
+
+// Define a type for customer data
+interface Customer {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  address?: string
+  city?: string
+  postal_code?: string
+  country?: string
+  created_at: string
+  updated_at?: string
 }
 
 const initialState = {
@@ -306,6 +321,10 @@ export default function AdminDashboard() {
   const [loadingContactMessages, setLoadingContactMessages] = useState(true) // New state for loading contact messages
   const [errorContactMessages, setErrorContactMessages] = useState<string | null>(null) // New state for contact messages error
 
+  const [customers, setCustomers] = useState<Customer[]>([]) // New state for customers
+  const [loadingCustomers, setLoadingCustomers] = useState(true) // New state for loading customers
+  const [errorCustomers, setErrorCustomers] = useState<string | null>(null) // New state for customers error
+
   const [user, setUser] = useState<any>(null) // State to hold current user info
 
   const { toast } = useToast()
@@ -378,11 +397,27 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchCustomers = useCallback(async () => {
+    setLoadingCustomers(true)
+    setErrorCustomers(null)
+    try {
+      const fetchedCustomers = await getCustomers()
+      setCustomers(fetchedCustomers)
+      dashboardStats.totalCustomers = fetchedCustomers.length // Update dashboard stat
+    } catch (error: any) {
+      setErrorCustomers(error.message || "Failed to fetch customers")
+      console.error("Failed to fetch customers:", error)
+    } finally {
+      setLoadingCustomers(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchProducts()
     fetchBlogPosts()
     fetchContactMessages() // Fetch contact messages on component mount
-  }, [fetchProducts, fetchBlogPosts, fetchContactMessages])
+    fetchCustomers() // Fetch customers on component mount
+  }, [fetchProducts, fetchBlogPosts, fetchContactMessages, fetchCustomers])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -1698,56 +1733,51 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[150px]">Customer</TableHead>
-                          <TableHead className="min-w-[200px]">Email</TableHead>
-                          <TableHead className="min-w-[80px]">Orders</TableHead>
-                          <TableHead className="min-w-[120px]">Total Spent</TableHead>
-                          <TableHead className="min-w-[100px]">Last Order</TableHead>
-                          <TableHead className="min-w-[100px]">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-semibold text-blue-600">JD</span>
-                              </div>
-                              <span className="font-medium">Jane Doe</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>jane@example.com</TableCell>
-                          <TableCell>5</TableCell>
-                          <TableCell>KES 8,500</TableCell>
-                          <TableCell>2024-01-15</TableCell>
-                          <TableCell>
-                            <Badge className="bg-green-100 text-green-800">Active</Badge>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-semibold text-purple-600">JS</span>
-                              </div>
-                              <span className="font-medium">John Smith</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>john@example.com</TableCell>
-                          <TableCell>3</TableCell>
-                          <TableCell>KES 6,000</TableCell>
-                          <TableCell>2024-01-10</TableCell>
-                          <TableCell>
-                            <Badge className="bg-green-100 text-green-800">Active</Badge>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
+                  {loadingCustomers && <p>Loading customers...</p>}
+                  {errorCustomers && <p className="text-red-500">Error: {errorCustomers}</p>}
+                  {!loadingCustomers && !errorCustomers && customers.length === 0 && <p>No customers found.</p>}
+                  {!loadingCustomers && !errorCustomers && customers.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Customer</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[120px]">Phone</TableHead>
+                            <TableHead className="min-w-[250px]">Address</TableHead>
+                            <TableHead className="min-w-[100px]">City</TableHead>
+                            <TableHead className="min-w-[100px]">Country</TableHead>
+                            <TableHead className="min-w-[100px]">Created At</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {customers.map((customer) => (
+                            <TableRow key={customer.id}>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-semibold text-blue-600">
+                                      {customer.first_name.charAt(0)}
+                                      {customer.last_name.charAt(0)}
+                                    </span>
+                                  </div>
+                                  <span className="font-medium">
+                                    {customer.first_name} {customer.last_name}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{customer.email}</TableCell>
+                              <TableCell>{customer.phone || "N/A"}</TableCell>
+                              <TableCell>{customer.address || "N/A"}</TableCell>
+                              <TableCell>{customer.city || "N/A"}</TableCell>
+                              <TableCell>{customer.country || "N/A"}</TableCell>
+                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

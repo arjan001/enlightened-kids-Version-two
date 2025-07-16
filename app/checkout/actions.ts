@@ -8,7 +8,7 @@ interface CartItem {
   title: string
   price: number
   quantity: number
-  image: string | null
+  image_url?: string | null
 }
 
 export async function processCheckout(
@@ -16,11 +16,10 @@ export async function processCheckout(
   cartItems: CartItem[],
   totalAmount: number,
   shippingCost: number,
-  selectedPaymentMethod: "mpesa" | "paypal" | null,
+  selectedPaymentMethod: string,
 ) {
   const supabase = createClient()
 
-  // 1. Extract Customer Information
   const firstName = String(formData.get("firstName"))
   const lastName = String(formData.get("lastName"))
   const email = String(formData.get("email"))
@@ -28,28 +27,27 @@ export async function processCheckout(
   const address = String(formData.get("address"))
   const city = String(formData.get("city"))
   const postalCode = String(formData.get("postalCode"))
-  const orderNotes = String(formData.get("orderNotes") ?? "")
+  const country = String(formData.get("country"))
 
   let customerId: string | null = null
 
   try {
-    // 2. Insert or Update Customer Information
-    const { data: existingCustomer, error: customerFetchError } = await supabase
+    // 1. Upsert Customer Data
+    const { data: existingCustomers, error: fetchCustomerError } = await supabase
       .from("customers")
       .select("id")
       .eq("email", email)
-      .single()
+      .limit(1)
 
-    if (customerFetchError && customerFetchError.code !== "PGRST116") {
-      // PGRST116 means no rows found, which is expected if it's a new customer
-      console.error("Error fetching existing customer:", customerFetchError)
-      throw new Error(`Failed to fetch customer: ${customerFetchError.message}`)
+    if (fetchCustomerError) {
+      console.error("Error fetching existing customer:", fetchCustomerError)
+      return { success: false, message: `Failed to check customer: ${fetchCustomerError.message}` }
     }
 
-    if (existingCustomer) {
-      customerId = existingCustomer.id
-      // Update existing customer details
-      const { error: updateError } = await supabase
+    if (existingCustomers && existingCustomers.length > 0) {
+      // Customer exists, update their details
+      customerId = existingCustomers[0].id
+      const { error: updateCustomerError } = await supabase
         .from("customers")
         .update({
           first_name: firstName,
@@ -58,14 +56,19 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
+          country,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", customerId)
-      if (updateError) {
-        console.error("Error updating customer:", updateError)
-        throw new Error(`Failed to update customer: ${updateError.message}`)
+
+      if (updateCustomerError) {
+        console.error("Error updating customer:", updateCustomerError)
+        return { success: false, message: `Failed to update customer: ${updateCustomerError.message}` }
       }
+      console.log("Customer updated:", customerId)
     } else {
-      const { data: newCustomer, error: customerInsertError } = await supabase
+      // Customer does not exist, insert new customer
+      const { data: newCustomer, error: insertCustomerError } = await supabase
         .from("customers")
         .insert({
           first_name: firstName,
@@ -75,59 +78,50 @@ export async function processCheckout(
           address,
           city,
           postal_code: postalCode,
+          country,
         })
         .select("id")
         .single()
 
-      if (customerInsertError) {
-        console.error("Error inserting new customer:", customerInsertError)
-        throw new Error(`Failed to insert customer: ${customerInsertError.message}`)
+      if (insertCustomerError) {
+        console.error("Error inserting new customer:", insertCustomerError)
+        return { success: false, message: `Failed to add new customer: ${insertCustomerError.message}` }
       }
       customerId = newCustomer.id
+      console.log("New customer inserted:", customerId)
     }
 
+    // 2. Insert Order Data
     if (!customerId) {
-      throw new Error("Customer ID could not be determined.")
+      return { success: false, message: "Customer ID not found after upsert operation." }
     }
 
-    // 3. Prepare Ordered Products for JSONB storage
-    const orderedProducts = cartItems.map((item) => ({
-      product_id: item.id,
-      title: item.title,
-      quantity: item.quantity,
-      price: item.price,
-      image: item.image,
-    }))
-
-    // 4. Insert Order Information
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert({
         customer_id: customerId,
+        customer_name: `${firstName} ${lastName}`, // Denormalized for easy access
+        customer_email: email, // Denormalized for easy access
         total_amount: totalAmount,
         shipping_cost: shippingCost,
         payment_method: selectedPaymentMethod,
-        order_notes: orderNotes,
-        ordered_products: orderedProducts, // Stored as JSONB
-        customer_name: `${firstName} ${lastName}`, // Denormalized for easy reference
-        customer_email: email, // Denormalized for easy reference
+        ordered_products: cartItems, // Store cart items as JSONB
         status: "pending_payment", // Initial status
+        order_date: new Date().toISOString(),
       })
-      .select()
+      .select("*")
       .single()
 
     if (orderError) {
-      console.error("Error inserting order:", orderError)
-      // Log the detailed error from Supabase
-      console.error("Supabase Order Insert Error Details:", orderError.details)
-      console.error("Supabase Order Insert Error Hint:", orderError.hint)
-      throw new Error(`Failed to insert order: ${orderError.message}`)
+      console.error("Error inserting order:", orderError.message, orderError.details, orderError.hint)
+      return { success: false, message: `Failed to create order: ${orderError.message}` }
     }
 
-    revalidatePath("/checkout")
-    return { success: true, order: orderData, message: "Order successfully created." }
+    console.log("Order created successfully:", orderData)
+    revalidatePath("/checkout") // Revalidate path if needed, though not strictly necessary for this flow
+    return { success: true, message: "Order created successfully!", order: orderData }
   } catch (error: any) {
-    console.error("Checkout process failed:", error.message)
-    return { success: false, message: error.message || "An unknown error occurred during checkout." }
+    console.error("Unexpected error during checkout process:", error)
+    return { success: false, message: `An unexpected error occurred: ${error.message}` }
   }
 }

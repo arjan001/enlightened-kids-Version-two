@@ -2,115 +2,71 @@
 
 import type React from "react"
 
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect, useMemo, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/contexts/cart-context"
-import { Minus, Plus, XCircle, ArrowLeft } from "lucide-react"
-import Image from "next/image"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-import { useRouter } from "next/navigation"
-import { useEffect, useState, useTransition } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { useCart } from "@/contexts/cart-context" // Ensure this import path is correct
+import Image from "next/image"
 import { PaymentModal } from "@/components/payment-modal"
-import { processCheckout } from "../checkout/actions"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
+import { processCheckout } from "./actions" // Import the server action
+import { useRouter } from "next/navigation"
 
 export default function CheckoutPage() {
-  const { state, dispatch } = useCart()
+  const { cartItems, dispatch } = useCart()
+  const { toast } = useToast()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [address, setAddress] = useState("")
+  const [city, setCity] = useState("")
+  const [postalCode, setPostalCode] = useState("")
+  const [country, setCountry] = useState("Kenya") // Default to Kenya
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("M-Pesa") // Default payment method
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"mpesa" | "paypal" | null>("mpesa")
 
-  // State for form fields, initialized from localStorage
-  const [firstName, setFirstName] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutFirstName") || ""
-    return ""
-  })
-  const [lastName, setLastName] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutLastName") || ""
-    return ""
-  })
-  const [email, setEmail] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutEmail") || ""
-    return ""
-  })
-  const [phone, setPhone] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutPhone") || ""
-    return ""
-  })
-  const [address, setAddress] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutAddress") || ""
-    return ""
-  })
-  const [city, setCity] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutCity") || ""
-    return ""
-  })
-  const [postalCode, setPostalCode] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutPostalCode") || ""
-    return ""
-  })
-  const [orderNotes, setOrderNotes] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("checkoutOrderNotes") || ""
-    return ""
-  })
+  // Load form data from local storage on mount
+  useEffect(() => {
+    setFirstName(localStorage.getItem("checkout_firstName") || "")
+    setLastName(localStorage.getItem("checkout_lastName") || "")
+    setEmail(localStorage.getItem("checkout_email") || "")
+    setPhone(localStorage.getItem("checkout_phone") || "")
+    setAddress(localStorage.getItem("checkout_address") || "")
+    setCity(localStorage.getItem("checkout_city") || "")
+    setPostalCode(localStorage.getItem("checkout_postalCode") || "")
+    setCountry(localStorage.getItem("checkout_country") || "Kenya")
+    setSelectedPaymentMethod(localStorage.getItem("checkout_paymentMethod") || "M-Pesa")
+  }, [])
 
-  // Persist form fields to localStorage whenever they change
+  // Save form data to local storage on change
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutFirstName", firstName)
-    }
-  }, [firstName])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutLastName", lastName)
-    }
-  }, [lastName])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutEmail", email)
-    }
-  }, [email])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutPhone", phone)
-    }
-  }, [phone])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutAddress", address)
-    }
-  }, [address])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutCity", city)
-    }
-  }, [city])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutPostalCode", postalCode)
-    }
-  }, [postalCode])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutOrderNotes", orderNotes)
-    }
-  }, [orderNotes])
+    localStorage.setItem("checkout_firstName", firstName)
+    localStorage.setItem("checkout_lastName", lastName)
+    localStorage.setItem("checkout_email", email)
+    localStorage.setItem("checkout_phone", phone)
+    localStorage.setItem("checkout_address", address)
+    localStorage.setItem("checkout_city", city)
+    localStorage.setItem("checkout_postalCode", postalCode)
+    localStorage.setItem("checkout_country", country)
+    localStorage.setItem("checkout_paymentMethod", selectedPaymentMethod)
+  }, [firstName, lastName, email, phone, address, city, postalCode, country, selectedPaymentMethod])
 
-  // Redirect if cart is empty
-  useEffect(() => {
-    if (state.items.length === 0) {
-      router.push("/books") // Redirect to books page if cart is empty
-    }
-  }, [state.items.length, router])
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }, [cartItems])
+
+  const shippingCost = 500 // Example fixed shipping cost
+  const totalAmount = subtotal + shippingCost
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -120,369 +76,237 @@ export default function CheckoutPage() {
     }).format(price)
   }
 
-  const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = 200 // Fixed shipping cost as per screenshot
-  const total = subtotal + shipping
-
-  const handleUpdateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity < 0) return // Prevent negative quantities
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity: newQuantity } })
-  }
-
-  const handleRemoveItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id })
-  }
-
-  // Validation logic
-  const isFormValid = () => {
-    return (
-      firstName.trim() !== "" &&
-      lastName.trim() !== "" &&
-      email.trim() !== "" &&
-      phone.trim() !== "" &&
-      address.trim() !== "" &&
-      city.trim() !== "" &&
-      postalCode.trim() !== "" &&
-      state.items.length > 0 // Ensure cart is not empty
-    )
-  }
-
-  const handleProceedToPayment = async (event: React.FormEvent) => {
+  const handleProceedToPayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault() // Prevent default form submission
 
-    if (!isFormValid()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required contact and delivery information.",
-        variant: "destructive",
-      })
-      return
-    }
-
     startTransition(async () => {
-      const formData = new FormData(event.currentTarget as HTMLFormElement) // Create FormData from the form
-      formData.set("firstName", firstName) // Manually add state values to FormData
+      const formData = new FormData(event.currentTarget)
+      // Manually append values from state-managed inputs if they don't have a 'name' attribute
+      // (though it's better to use 'name' directly on the input)
+      formData.set("firstName", firstName)
       formData.set("lastName", lastName)
       formData.set("email", email)
       formData.set("phone", phone)
       formData.set("address", address)
       formData.set("city", city)
       formData.set("postalCode", postalCode)
-      formData.set("orderNotes", orderNotes)
+      formData.set("country", country)
+      formData.set("paymentMethod", selectedPaymentMethod) // Ensure this is passed
 
-      const result = await processCheckout(formData, state.items, total, shipping, selectedPaymentMethod)
+      try {
+        const result = await processCheckout(formData, cartItems, totalAmount, shippingCost, selectedPaymentMethod)
 
-      if (result.success) {
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Order Made Successfully!",
+          })
+          // Clear cart and local storage after successful order creation
+          dispatch({ type: "CLEAR_CART" })
+          localStorage.removeItem("checkout_firstName")
+          localStorage.removeItem("checkout_lastName")
+          localStorage.removeItem("checkout_email")
+          localStorage.removeItem("checkout_phone")
+          localStorage.removeItem("checkout_address")
+          localStorage.removeItem("checkout_city")
+          localStorage.removeItem("checkout_postalCode")
+          localStorage.removeItem("checkout_country")
+          localStorage.removeItem("checkout_paymentMethod")
+
+          router.push("/booklet") // Redirect to /booklet page
+        } else {
+          toast({
+            title: "Error",
+            description: result.message || "Failed to create order.",
+            variant: "destructive",
+          })
+        }
+      } catch (error: any) {
+        console.error("Client-side error during checkout:", error)
         toast({
-          title: "Order Made Successfully!",
-          description: result.message,
-          variant: "default",
-        })
-        // Clear local storage for checkout form fields
-        localStorage.removeItem("checkoutFirstName")
-        localStorage.removeItem("checkoutLastName")
-        localStorage.removeItem("checkoutEmail")
-        localStorage.removeItem("checkoutPhone")
-        localStorage.removeItem("checkoutAddress")
-        localStorage.removeItem("checkoutCity")
-        localStorage.removeItem("checkoutPostalCode")
-        localStorage.removeItem("checkoutOrderNotes")
-
-        // Clear the cart
-        dispatch({ type: "CLEAR_CART" })
-
-        // Redirect to /booklet page
-        router.push("/booklet")
-      } else {
-        toast({
-          title: "Order Failed",
-          description: result.message,
+          title: "Error",
+          description: `An unexpected error occurred: ${error.message}`,
           variant: "destructive",
         })
       }
     })
   }
 
-  // If cart is empty, display a loading state or null while redirecting
-  if (state.items.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white pt-16">
-        <p>Redirecting to books page...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-white pt-16">
-      <Header />
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <h1 className="text-3xl font-bold mb-8 text-center">Checkout</h1>
 
-      <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-6xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/books")}
-            className="mb-6 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Books
-          </Button>
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
-          <form onSubmit={handleProceedToPayment} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Order Summary & Payment Method */}
-            <div className="space-y-8">
-              {/* Order Summary */}
-              <Card className="p-6 shadow-sm rounded-lg">
-                <CardHeader className="px-0 pt-0 pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-800">Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="space-y-4">
-                    {state.items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-4">
+      <form onSubmit={handleProceedToPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Shipping Information */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Shipping Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                name="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street address, P.O. Box, etc."
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="postalCode">Postal Code</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Select name="country" value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Kenya">Kenya</SelectItem>
+                    <SelectItem value="Uganda">Uganda</SelectItem>
+                    <SelectItem value="Tanzania">Tanzania</SelectItem>
+                    <SelectItem value="Rwanda">Rwanda</SelectItem>
+                    <SelectItem value="Burundi">Burundi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Order Summary */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Order Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {cartItems.length === 0 ? (
+              <p className="text-center text-gray-500">Your cart is empty.</p>
+            ) : (
+              <div className="space-y-2">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-2">
+                      {item.image_url && (
                         <Image
-                          src={item.image || "/placeholder.svg"}
+                          src={item.image_url || "/placeholder.svg"}
                           alt={item.title}
-                          width={80}
-                          height={80}
-                          className="rounded-md object-cover"
+                          width={40}
+                          height={50}
+                          className="rounded object-cover"
                         />
-                        <div className="flex-grow">
-                          <h3 className="font-medium text-gray-800">{item.title}</h3>
-                          <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                          <p className="text-sm text-gray-600">{formatPrice(item.price * item.quantity)}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7 bg-transparent"
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="text-sm font-medium">{item.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7 bg-transparent"
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-500 hover:text-red-600"
-                            onClick={() => handleRemoveItem(item.id)}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Separator className="my-6" />
-
-                  <div className="grid gap-2 text-gray-700">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>{formatPrice(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Shipping</span>
-                      <span>{formatPrice(shipping)}</span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-bold text-lg text-gray-800">
-                      <span>Total</span>
-                      <span>{formatPrice(total)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Payment Method */}
-              <Card className="p-6 shadow-sm rounded-lg">
-                <CardHeader className="px-0 pt-0 pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-800">Payment Method</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <RadioGroup
-                    defaultValue="mpesa"
-                    value={selectedPaymentMethod || "mpesa"}
-                    onValueChange={(value: "mpesa" | "paypal") => setSelectedPaymentMethod(value)}
-                    className="grid gap-4"
-                  >
-                    <Label
-                      htmlFor="mpesa"
-                      className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-orange-500 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem id="mpesa" value="mpesa" className="text-orange-500 border-gray-300" />
-                        <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={80} height={40} />
-                      </div>
-                      <span className="block text-sm font-medium text-gray-700">
-                        Pay securely with your M-Pesa mobile money account
+                      )}
+                      <span>
+                        {item.title} (x{item.quantity})
                       </span>
-                      <Badge className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Popular</Badge>
-                    </Label>
-                    <Label
-                      htmlFor="paypal"
-                      className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-orange-500 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem id="paypal" value="paypal" className="text-orange-500 border-gray-300" />
-                        <Image src="/placeholder.svg?height=40&width=80" alt="PayPal" width={80} height={40} />
-                      </div>
-                      <span className="block text-sm font-medium text-gray-700">
-                        Pay with your PayPal account or credit/debit card
-                      </span>
-                    </Label>
-                  </RadioGroup>
-                  <Button
-                    type="submit"
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-6 py-3 text-lg font-semibold"
-                    disabled={isPending || !isFormValid() || !selectedPaymentMethod}
-                  >
-                    {isPending ? "Processing Order..." : `Complete Payment - ${formatPrice(total)}`}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-            {/* Right Column: Contact, Delivery, Order Notes */}
-            <div className="space-y-8">
-              {/* Contact Information */}
-              <Card className="p-6 shadow-sm rounded-lg">
-                <CardHeader className="px-0 pt-0 pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-800">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        placeholder="Enter your first name"
-                        required
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        placeholder="Enter your last name"
-                        required
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="Enter your email address"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        placeholder="Enter your phone number"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
+                    <span>{formatPrice(item.price * item.quantity)}</span>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
+            )}
 
-              {/* Delivery Address */}
-              <Card className="p-6 shadow-sm rounded-lg">
-                <CardHeader className="px-0 pt-0 pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-800">Delivery Address</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="address">Street Address</Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        placeholder="Enter your street address"
-                        required
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        placeholder="Enter your city"
-                        required
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input
-                        id="postalCode"
-                        name="postalCode"
-                        placeholder="Enter postal code"
-                        required
-                        value={postalCode}
-                        onChange={(e) => setPostalCode(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <Separator />
 
-              {/* Order Notes (Optional) */}
-              <Card className="p-6 shadow-sm rounded-lg">
-                <CardHeader className="px-0 pt-0 pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-800">Order Notes (Optional)</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Textarea
-                    name="orderNotes"
-                    placeholder="Any special instructions for your order..."
-                    className="min-h-[100px]"
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                  />
-                </CardContent>
-              </Card>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                <span>{formatPrice(shippingCost)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{formatPrice(totalAmount)}</span>
+              </div>
             </div>
-          </form>
-        </div>
-      </main>
 
-      <Footer />
+            <Separator />
 
-      {/* Payment Modal - Kept for future payment integration, but not opened directly after order creation */}
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        paymentMethod={selectedPaymentMethod}
-        totalAmount={total}
-      />
+            {/* Payment Method Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select name="paymentMethod" value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                  <SelectItem value="PayPal">PayPal</SelectItem>
+                  <SelectItem value="Card">Credit/Debit Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isPending || cartItems.length === 0}>
+              {isPending ? "Processing..." : "Complete Payment"}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+
+      {/* Payment Modal (kept for future use, but not opened directly after order creation now) */}
+      <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
     </div>
   )
 }

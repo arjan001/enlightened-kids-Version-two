@@ -172,3 +172,14 @@ export async function signOutUser() {
   revalidatePath("/admin") // Revalidate the admin path to force re-check auth
   redirect("/admin/login") // Redirect to login page after logout
 }
+
+// New function to get all customers
+export async function getCustomers() {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("customers").select("*").order("created_at", { ascending: false })
+  if (error) {
+    console.error("Error fetching customers:", error)
+    throw new Error(`Failed to fetch customers: ${error.message}`)
+  }
+  return data
+}
