@@ -140,7 +140,9 @@ export default function BooksPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-green-800 py-12">
+      <section className="bg-green-800 py-24">
+        {" "}
+        {/* Increased top/bottom padding */}
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center lg:justify-between gap-8">
             {/* Left Column: Text Content */}
@@ -156,21 +158,23 @@ export default function BooksPage() {
                 in the present, anything is possible. So, what choice are you making this moment?
               </p>
             </div>
-            {/* Right Column: Images */}
-            <div className="lg:w-1/2 flex justify-center lg:justify-end gap-4">
-              <Image
-                src="/images/colours-of-me-front.jpg"
-                alt="Colours of Me Front Cover"
-                width={250}
-                height={350}
-                className="rounded-lg shadow-lg"
-              />
+            {/* Right Column: Images with Overlap */}
+            <div className="lg:w-1/2 flex justify-center lg:justify-end relative h-[400px] w-[400px] sm:h-[450px] sm:w-[450px]">
+              {" "}
+              {/* Added relative positioning and fixed height/width */}
               <Image
                 src="/images/colours-of-me-back.png"
                 alt="Colours of Me Back Cover"
-                width={250}
-                height={350}
-                className="rounded-lg shadow-lg"
+                width={300} // Increased size
+                height={400} // Increased size
+                className="absolute top-0 left-0 rounded-lg shadow-lg z-0" // Positioned and z-indexed
+              />
+              <Image
+                src="/images/colours-of-me-front.jpg"
+                alt="Colours of Me Front Cover"
+                width={300} // Increased size
+                height={400} // Increased size
+                className="absolute bottom-0 right-0 rounded-lg shadow-lg z-10" // Positioned and z-indexed
               />
             </div>
           </div>
