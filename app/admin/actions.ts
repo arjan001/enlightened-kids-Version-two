@@ -6,15 +6,13 @@ import { BOOKS_BUCKET_NAME } from "@/constants" // Declare the variable here
 
 export interface Customer {
   id: string
-  first_name: string
-  last_name: string
-  email: string
-  phone: string | null
-  address: string | null
-  city: string | null
-  postal_code: string | null
-  created_at: string
-  updated_at: string | null
+  customer_name: string
+  customer_email: string
+  phone_number: string | null
+  shipping_address_line1: string
+  shipping_city: string
+  shipping_country: string
+  created_at: string // aliased from order_date
 }
 
 export interface BlogPost {
@@ -37,17 +35,28 @@ export interface ContactMessage {
 
 export async function getCustomers() {
   const supabase = createClient()
+
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id, customer_first_name, customer_last_name, customer_email, customer_phone, customer_address, customer_city, customer_postal_code, created_at",
+      `
+        id,
+        customer_name,
+        customer_email,
+        phone_number,
+        shipping_address_line1,
+        shipping_city,
+        shipping_country,
+        created_at:order_date
+      `,
     )
-    .order("created_at", { ascending: false })
+    .order("order_date", { ascending: false })
 
   if (error) {
     console.error("Error fetching customers:", error)
     throw new Error(`Failed to fetch customers: ${error.message}`)
   }
+
   return data
 }
 
@@ -193,10 +202,14 @@ export async function addProduct(formData: FormData) {
 
 /**
  * Fetch all products ordered by newest first.
+ *
+ * This runs in the browser (client-side) because the Admin dashboard
+ * calls it directly in a React Client Component.
  */
 export async function getProducts() {
-  "use server"
-  const supabase = createClient()
+  // use the client-side Supabase helper (uses the public anon key)
+  const supabase = (await import("@/lib/supabase/client")).createClient()
+
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
 
   if (error) throw new Error(`Failed to fetch products: ${error.message}`)
