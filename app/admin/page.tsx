@@ -145,6 +145,7 @@ interface Customer {
   postal_code: string | null
   created_at: string
   updated_at: string | null
+  country?: string | null
 }
 
 const initialState = {
@@ -283,6 +284,30 @@ const permissions = [
   { id: "settings", name: "Settings", description: "Manage system settings" },
   { id: "users", name: "User Management", description: "Manage users and permissions" },
 ]
+
+// ----------------------------------------------------------------------
+// 🛠  Helpers  – avoid "undefined.charAt" runtime errors
+// ----------------------------------------------------------------------
+const getCustomerInitials = (customer: any) => {
+  if (customer?.first_name && customer?.last_name) {
+    return `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`
+  }
+  if (customer?.customer_name) {
+    return customer.customer_name
+      .split(" ")
+      .slice(0, 2)
+      .map((n: string) => n.charAt(0))
+      .join("")
+  }
+  return "?"
+}
+
+const getCustomerFullName = (customer: any) => {
+  if (customer?.first_name && customer?.last_name) {
+    return `${customer.first_name} ${customer.last_name}`
+  }
+  return customer?.customer_name ?? "Unknown"
+}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -1759,13 +1784,10 @@ export default function AdminDashboard() {
                                 <div className="flex items-center space-x-3">
                                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                     <span className="text-sm font-semibold text-blue-600">
-                                      {customer.first_name.charAt(0)}
-                                      {customer.last_name.charAt(0)}
+                                      {getCustomerInitials(customer)}
                                     </span>
                                   </div>
-                                  <span className="font-medium">
-                                    {customer.first_name} {customer.last_name}
-                                  </span>
+                                  <span className="font-medium">{getCustomerFullName(customer)}</span>
                                 </div>
                               </TableCell>
                               <TableCell>{customer.email}</TableCell>
