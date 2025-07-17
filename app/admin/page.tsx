@@ -76,11 +76,21 @@ import {
   Cell,
 } from "recharts"
 import Image from "next/image"
-import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers, getOrders } from "./actions" // Import Product Server Actions and signOutUser, getCustomers, getOrders
-import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
-import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
+import {
+  addProduct,
+  getProducts,
+  updateProduct,
+  deleteProduct,
+  signOutUser,
+  getCustomers,
+  getOrders,
+  getPendingOrdersCount,
+  updateOrderStatus, // Import the new action
+} from "./actions"
+import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions"
+import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions"
 import { useToast } from "@/components/ui/use-toast"
-import { createClient } from "@/lib/supabase/client" // Import client-side Supabase client
+import { createClient } from "@/lib/supabase/client"
 
 // Define a type for your product data
 interface Product {
@@ -307,6 +317,7 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null)
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null) // Use Order interface
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<Order["status"] | undefined>(undefined) // State for order status in modal
   const [editingUser, setEditingUser] = useState<any>(null)
   const [editingRole, setEditingRole] = useState<any>(null)
 
@@ -438,6 +449,19 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // Fetch pending orders count specifically
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const count = await getPendingOrdersCount()
+        setPendingOrdersCount(count)
+      } catch (error: any) {
+        console.error("Failed to fetch pending orders count for dashboard:", error)
+      }
+    }
+    fetchPendingCount()
+  }, [orders]) // Re-fetch when orders change to keep count updated
+
   useEffect(() => {
     fetchProducts()
     fetchBlogPosts()
@@ -449,7 +473,6 @@ export default function AdminDashboard() {
   // Effect to calculate dashboard stats and chart data when orders, products, or customers change
   useEffect(() => {
     let calculatedTotalSales = 0
-    let calculatedPendingOrders = 0
     const productSalesMap = new Map<
       string,
       { sales: number; revenue: number; title: string; image_url?: string | null }
@@ -480,13 +503,11 @@ export default function AdminDashboard() {
         currentMonthData.sales += order.total_amount
         currentMonthData.orders += 1
         monthlySalesMap.set(monthKey, currentMonthData)
-      } else if (order.status === "pending") {
-        calculatedPendingOrders += 1
       }
     })
 
     setTotalSales(calculatedTotalSales)
-    setPendingOrdersCount(calculatedPendingOrders)
+    // pendingOrdersCount is now set by its own useEffect
 
     // Convert product sales map to array and sort for Top Selling Books
     const sortedTopSellingBooks = Array.from(productSalesMap.entries())
@@ -546,9 +567,30 @@ export default function AdminDashboard() {
   }
 
   const handleViewOrder = (order: Order) => {
-    // Use Order interface
     setViewingOrder(order)
+    setSelectedOrderStatus(order.status) // Initialize selected status when opening modal
     setIsViewOrderOpen(true)
+  }
+
+  const handleUpdateOrderStatus = async () => {
+    if (!viewingOrder || !selectedOrderStatus) return
+
+    try {
+      await updateOrderStatus(viewingOrder.id, selectedOrderStatus)
+      toast({
+        title: "Success",
+        description: `Order ${viewingOrder.id} status updated to ${selectedOrderStatus}.`,
+      })
+      setIsViewOrderOpen(false)
+      setViewingOrder(null)
+      fetchOrders() // Re-fetch orders to reflect the change in the table
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update order status.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleViewContactMessage = (message: ContactMessage) => {
@@ -719,6 +761,13 @@ export default function AdminDashboard() {
       }
     })
   }
+
+  // Dummy data for traffic sources
+  const trafficData = [
+    { name: "Direct", value: 400, color: "#0088FE" },
+    { name: "Social Media", value: 300, color: "#00C49F" },
+    { name: "Search Engines", value: 300, color: "#FFBB28" },
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -2647,17 +2696,26 @@ export default function AdminDashboard() {
                   <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
                   {/* <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p> */}
                 </div>
-                <Badge
-                  className={
-                    viewingOrder.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : viewingOrder.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-blue-100 text-blue-800"
-                  }
-                >
-                  {viewingOrder.status.toUpperCase()}
-                </Badge>
+                {/* Status Select */}
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="orderStatus" className="sr-only">
+                    Order Status
+                  </Label>
+                  <Select
+                    value={selectedOrderStatus}
+                    onValueChange={(value: Order["status"]) => setSelectedOrderStatus(value)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2806,7 +2864,7 @@ export default function AdminDashboard() {
                 <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
                   Close
                 </Button>
-                <Button>Update Status</Button>
+                <Button onClick={handleUpdateOrderStatus}>Update Status</Button>
               </div>
             </div>
           )}

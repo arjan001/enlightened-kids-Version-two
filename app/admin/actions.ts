@@ -111,6 +111,39 @@ export async function getOrders() {
   return data
 }
 
+/**
+ * Fetches the count of orders with 'pending' status.
+ */
+export async function getPendingOrdersCount(): Promise<number> {
+  const supabase = createClient()
+  const { count, error } = await supabase.from("orders").select("id", { count: "exact" }).eq("status", "pending")
+
+  if (error) {
+    console.error("Error fetching pending orders count:", error)
+    throw new Error(`Failed to fetch pending orders count: ${error.message}`)
+  }
+
+  return count || 0
+}
+
+/**
+ * Updates the status of an existing order.
+ */
+export async function updateOrderStatus(orderId: string, newStatus: Order["status"]) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+
+  if (error) {
+    console.error("Error updating order status:", error)
+    throw new Error(`Failed to update order status: ${error.message}`)
+  }
+  revalidatePath("/admin") // Revalidate path to reflect changes on the dashboard
+  return { success: true }
+}
+
 export async function getBlogPosts() {
   const supabase = createClient()
   const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
