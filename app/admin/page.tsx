@@ -57,7 +57,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -156,7 +155,6 @@ interface Order {
   status: "pending" | "completed" | "shipped" | "cancelled"
   order_date: string
   order_items: Array<{
-    // Changed from product_details to order_items
     product_id: string
     title: string
     quantity: number
@@ -169,32 +167,9 @@ const initialState = {
   success: false,
 }
 
-// Dummy data (will be replaced by fetched data)
-const dashboardStats = {
-  totalSales: 125000,
-  totalCustomers: 1250,
-  siteVisits: 15420,
-  totalBooks: 0, // Will be updated by fetched products
-  totalBlogPosts: 0, // Will be updated by fetched blog posts
-  returnRequests: 8,
-  pendingOrders: 23,
-}
-
-const salesData = [
-  { month: "Jan", sales: 12000, orders: 45 },
-  { month: "Feb", sales: 15000, orders: 52 },
-  { month: "Mar", sales: 18000, orders: 68 },
-  { month: "Apr", sales: 22000, orders: 78 },
-  { month: "May", sales: 25000, orders: 89 },
-  { month: "Jun", sales: 28000, orders: 95 },
-]
-
-const trafficData = [
-  { name: "Direct", value: 45, color: "#8884d8" },
-  { name: "Social Media", value: 30, color: "#82ca9d" },
-  { name: "Search Engines", value: 25, color: "#ffc658" },
-]
-
+// Dummy data that cannot be made dynamic from current backend
+const siteVisits = 15420
+const returnRequests = 8
 const paymentMethods = [
   { name: "M-Pesa", percentage: 65, transactions: 812 },
   { name: "PayPal", percentage: 35, transactions: 438 },
@@ -362,6 +337,15 @@ export default function AdminDashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null)
 
+  // New states for dynamic dashboard data
+  const [totalSales, setTotalSales] = useState(0)
+  const [totalCustomersCount, setTotalCustomersCount] = useState(0)
+  const [totalBooksCount, setTotalBooksCount] = useState(0)
+  const [totalBlogPostsCount, setTotalBlogPostsCount] = useState(0)
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0)
+  const [topSellingBooks, setTopSellingBooks] = useState<Product[]>([])
+  const [monthlySalesData, setMonthlySalesData] = useState<{ month: string; sales: number; orders: number }[]>([])
+
   // Fetch user session on component mount
   useEffect(() => {
     const supabase = createClient()
@@ -389,7 +373,6 @@ export default function AdminDashboard() {
     try {
       const fetchedProducts = await getProducts()
       setProducts(fetchedProducts)
-      dashboardStats.totalBooks = fetchedProducts.length // Update dashboard stat
     } catch (error: any) {
       setErrorProducts(error.message || "Failed to fetch products")
       console.error("Failed to fetch products:", error)
@@ -404,7 +387,7 @@ export default function AdminDashboard() {
     try {
       const fetchedBlogPosts = await getBlogPosts()
       setBlogPosts(fetchedBlogPosts)
-      dashboardStats.totalBlogPosts = fetchedBlogPosts.length // Update dashboard stat
+      setTotalBlogPostsCount(fetchedBlogPosts.length) // Update dashboard stat
     } catch (error: any) {
       setErrorBlogPosts(error.message || "Failed to fetch blog posts")
       console.error("Failed to fetch blog posts:", error)
@@ -433,7 +416,6 @@ export default function AdminDashboard() {
     try {
       const fetchedCustomers = await getCustomers()
       setCustomers(fetchedCustomers)
-      dashboardStats.totalCustomers = fetchedCustomers.length // Update dashboard stat
     } catch (error: any) {
       setErrorCustomers(error.message || "Failed to fetch customers")
       console.error("Failed to fetch customers:", error)
@@ -448,7 +430,6 @@ export default function AdminDashboard() {
     try {
       const fetchedOrders = await getOrders()
       setOrders(fetchedOrders)
-      dashboardStats.pendingOrders = fetchedOrders.filter((order) => order.status === "pending").length // Update dashboard stat
     } catch (error: any) {
       setErrorOrders(error.message || "Failed to fetch orders")
       console.error("Failed to fetch orders:", error)
@@ -464,6 +445,76 @@ export default function AdminDashboard() {
     fetchCustomers() // Fetch customers on component mount
     fetchOrders() // Fetch orders on component mount
   }, [fetchProducts, fetchBlogPosts, fetchContactMessages, fetchCustomers, fetchOrders])
+
+  // Effect to calculate dashboard stats and chart data when orders, products, or customers change
+  useEffect(() => {
+    let calculatedTotalSales = 0
+    let calculatedPendingOrders = 0
+    const productSalesMap = new Map<
+      string,
+      { sales: number; revenue: number; title: string; image_url?: string | null }
+    >()
+    const monthlySalesMap = new Map<string, { sales: number; orders: number }>()
+
+    orders.forEach((order) => {
+      if (order.status === "completed" || order.status === "shipped") {
+        calculatedTotalSales += order.total_amount
+
+        // Aggregate for Top Selling Books
+        order.order_items?.forEach((item) => {
+          const current = productSalesMap.get(item.product_id) || {
+            sales: 0,
+            revenue: 0,
+            title: item.title,
+            image_url: null,
+          }
+          current.sales += item.quantity
+          current.revenue += item.quantity * item.price
+          productSalesMap.set(item.product_id, current)
+        })
+
+        // Aggregate for Monthly Sales Trend
+        const orderDate = new Date(order.order_date)
+        const monthKey = orderDate.toLocaleString("en-US", { month: "short", year: "numeric" }) // e.g., "Jan 2024"
+        const currentMonthData = monthlySalesMap.get(monthKey) || { sales: 0, orders: 0 }
+        currentMonthData.sales += order.total_amount
+        currentMonthData.orders += 1
+        monthlySalesMap.set(monthKey, currentMonthData)
+      } else if (order.status === "pending") {
+        calculatedPendingOrders += 1
+      }
+    })
+
+    setTotalSales(calculatedTotalSales)
+    setPendingOrdersCount(calculatedPendingOrders)
+
+    // Convert product sales map to array and sort for Top Selling Books
+    const sortedTopSellingBooks = Array.from(productSalesMap.entries())
+      .map(([productId, data]) => {
+        // Find the full product details to get image_url
+        const product = products.find((p) => p.id === productId)
+        return {
+          id: productId,
+          title: data.title,
+          sales: data.sales,
+          revenue: data.revenue,
+          image_url: product?.image_url || null, // Use actual image_url if found
+        }
+      })
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 4) // Limit to top 4
+    setTopSellingBooks(sortedTopSellingBooks)
+
+    // Convert monthly sales map to array and sort by date
+    const sortedMonthlySalesData = Array.from(monthlySalesMap.entries())
+      .map(([month, data]) => ({ month, sales: data.sales, orders: data.orders }))
+      .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime()) // Sort by date
+    setMonthlySalesData(sortedMonthlySalesData)
+
+    // Update other counts
+    setTotalCustomersCount(customers.length)
+    setTotalBooksCount(products.length)
+  }, [orders, products, customers]) // Recalculate when orders, products, or customers change
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -771,7 +822,7 @@ export default function AdminDashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Total Sales</p>
                         <p className="text-sm sm:text-lg font-bold text-green-600 truncate">
-                          {formatPrice(dashboardStats.totalSales)}
+                          {formatPrice(totalSales)}
                         </p>
                       </div>
                       <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
@@ -789,7 +840,7 @@ export default function AdminDashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Customers</p>
                         <p className="text-sm sm:text-lg font-bold text-blue-600 truncate">
-                          {dashboardStats.totalCustomers.toLocaleString()}
+                          {totalCustomersCount.toLocaleString()}
                         </p>
                       </div>
                       <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
@@ -807,7 +858,7 @@ export default function AdminDashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Site Visits</p>
                         <p className="text-sm sm:text-lg font-bold text-purple-600 truncate">
-                          {dashboardStats.siteVisits.toLocaleString()}
+                          {siteVisits.toLocaleString()}
                         </p>
                       </div>
                       <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 flex-shrink-0" />
@@ -824,7 +875,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Total Books</p>
-                        <p className="text-sm sm:text-lg font-bold text-orange-600">{dashboardStats.totalBooks}</p>
+                        <p className="text-sm sm:text-lg font-bold text-orange-600">{totalBooksCount}</p>
                       </div>
                       <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 flex-shrink-0" />
                     </div>
@@ -839,7 +890,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Returns</p>
-                        <p className="text-sm sm:text-lg font-bold text-red-600">{dashboardStats.returnRequests}</p>
+                        <p className="text-sm sm:text-lg font-bold text-red-600">{returnRequests}</p>
                       </div>
                       <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0" />
                     </div>
@@ -855,7 +906,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm text-gray-600 truncate">Pending Orders</p>
-                        <p className="text-sm sm:text-lg font-bold text-yellow-600">{dashboardStats.pendingOrders}</p>
+                        <p className="text-sm sm:text-lg font-bold text-yellow-600">{pendingOrdersCount}</p>
                       </div>
                       <Package className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 flex-shrink-0" />
                     </div>
@@ -875,10 +926,8 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {products
-                        .sort((a, b) => (b.sales || 0) - (a.sales || 0)) // Ensure sales are numbers for sorting
-                        .slice(0, 4)
-                        .map((book, index) => (
+                      {topSellingBooks.length > 0 ? (
+                        topSellingBooks.map((book, index) => (
                           <div key={book.id} className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -893,7 +942,10 @@ export default function AdminDashboard() {
                               <p className="font-semibold text-xs sm:text-sm">{formatPrice(book.revenue || 0)}</p>
                             </div>
                           </div>
-                        ))}
+                        ))
+                      ) : (
+                        <p className="text-gray-500">No top selling books data available.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1392,7 +1444,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                       <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-2" />
                         Export
@@ -1643,7 +1695,9 @@ export default function AdminDashboard() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-green-600">85%</p>
+                      <p className="text-xl sm:text-2xl font-bold text-green-600">
+                        {((totalSales / 100000) * 100).toFixed(0)}%
+                      </p>
                       <p className="text-xs sm:text-sm text-gray-600">Conversion Rate</p>
                     </div>
                   </CardContent>
@@ -1690,7 +1744,7 @@ export default function AdminDashboard() {
                       className="h-[250px] w-full"
                     >
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={salesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <BarChart data={monthlySalesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="month" />
                           <YAxis />
@@ -1763,7 +1817,7 @@ export default function AdminDashboard() {
                     className="h-[250px] w-full"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={salesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <LineChart data={monthlySalesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
@@ -1812,9 +1866,7 @@ export default function AdminDashboard() {
                             <TableHead className="min-w-[250px]">Address</TableHead>
                             <TableHead className="min-w-[100px]">City</TableHead>
                             <TableHead className="min-w-[100px]">Country</TableHead>
-                            <TableHead className className="min-w-[100px]">
-                              Created At
-                            </TableHead>
+                            <TableHead className="min-w-[100px]">Created At</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -2837,9 +2889,6 @@ export default function AdminDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the {deleteItem?.type} "{deleteItem?.name}".
-            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
