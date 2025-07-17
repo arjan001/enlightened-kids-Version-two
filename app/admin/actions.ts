@@ -98,12 +98,7 @@ export async function getOrders() {
         total_amount,
         status,
         order_date,
-        order_items:order_items (
-          product_id,
-          title,
-          quantity,
-          price
-        )
+        order_items:ordered_products
       `,
     )
     .order("order_date", { ascending: false })

@@ -1,6 +1,6 @@
 "use client"
 
-import { Tooltip } from "@/components/ui/tooltip"
+import { Calendar } from "@/components/ui/calendar"
 
 import type React from "react"
 
@@ -34,9 +34,15 @@ import {
   User,
   ChevronDown,
   UserPlus,
+  Key,
   Menu,
   X,
   MessageSquare,
+  Mail,
+  Phone,
+  MapPin,
+  Archive,
+  CheckCircle,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,8 +53,30 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChartTooltip } from "@/components/ui/chart"
-import { XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts"
 import Image from "next/image"
 import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers, getOrders } from "./actions" // Import Product Server Actions and signOutUser, getCustomers, getOrders
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
@@ -129,6 +157,7 @@ interface Order {
   status: "pending" | "completed" | "shipped" | "cancelled"
   order_date: string
   order_items: Array<{
+    // Changed from product_details to order_items
     product_id: string
     title: string
     quantity: number
@@ -270,6 +299,16 @@ const getCustomerInitials = (customer: Customer) => {
 
 const getCustomerFullName = (customer: Customer) => {
   return customer?.customer_name ?? "Unknown"
+}
+
+function getCustomerInitials2(customer: Customer): string {
+  const firstNameInitial = customer.customer_name?.[0] || ""
+  const lastNameInitial = customer.customer_name?.split(" ").pop()?.[0] || ""
+  return `${firstNameInitial}${lastNameInitial}`.toUpperCase()
+}
+
+function getCustomerFullName2(customer: Customer): string {
+  return customer.customer_name || "N/A"
 }
 
 export default function AdminDashboard() {
@@ -1629,8 +1668,8 @@ export default function AdminDashboard() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-orange-600">15k</p>
-                      <p className="text-xs sm:text-sm text-gray-600">Monthly Active Users</p>
+                      <p className="text-xl sm:text-2xl font-bold text-orange-600">92%</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Customer Satisfaction</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -1639,18 +1678,28 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Sales Overview</CardTitle>
+                    <CardTitle>Sales Trend</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={salesData}>
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Line type="monotone" dataKey="sales" stroke="#8884d8" />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <ChartContainer
+                      config={{
+                        sales: {
+                          label: "Sales",
+                          color: "hsl(var(--chart-1))",
+                        },
+                      }}
+                      className="h-[250px] w-full"
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={salesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Bar dataKey="sales" fill="var(--color-sales)" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
                   </CardContent>
                 </Card>
 
@@ -1659,31 +1708,1148 @@ export default function AdminDashboard() {
                     <CardTitle>Traffic Sources</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={trafficData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          fill="#8884d8"
-                        >
-                          {trafficData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <ChartContainer
+                      config={{
+                        direct: {
+                          label: "Direct",
+                          color: "#8884d8",
+                        },
+                        social: {
+                          label: "Social Media",
+                          color: "#82ca9d",
+                        },
+                        search: {
+                          label: "Search Engines",
+                          color: "#ffc658",
+                        },
+                      }}
+                      className="h-[250px] w-full"
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={trafficData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {trafficData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <ChartTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
                   </CardContent>
                 </Card>
               </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Revenue Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer
+                    config={{
+                      revenue: {
+                        label: "Revenue",
+                        color: "hsl(var(--chart-3))",
+                      },
+                    }}
+                    className="h-[250px] w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={salesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line type="monotone" dataKey="sales" stroke="var(--color-revenue)" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "customers" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Customer Management</h2>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <CardTitle>All Customers</CardTitle>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input placeholder="Search customers..." className="pl-10 w-full sm:w-64" />
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingCustomers && <p>Loading customers...</p>}
+                  {errorCustomers && <p className="text-red-500">Error: {errorCustomers}</p>}
+                  {!loadingCustomers && !errorCustomers && customers.length === 0 && <p>No customers found.</p>}
+                  {!loadingCustomers && !errorCustomers && customers.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Customer</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[120px]">Phone</TableHead>
+                            <TableHead className="min-w-[250px]">Address</TableHead>
+                            <TableHead className="min-w-[100px]">City</TableHead>
+                            <TableHead className="min-w-[100px]">Country</TableHead>
+                            <TableHead className className="min-w-[100px]">
+                              Created At
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {customers.map((customer) => (
+                            <TableRow key={customer.id}>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-semibold text-blue-600">
+                                      {getCustomerInitials(customer)}
+                                    </span>
+                                  </div>
+                                  <span className="font-medium">{getCustomerFullName(customer)}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{customer.customer_email}</TableCell>
+                              <TableCell>{customer.phone_number || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_address_line1 || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_city || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_country || "N/A"}</TableCell>
+                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "orders" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Order Management</h2>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <CardTitle>All Orders</CardTitle>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Orders</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input placeholder="Search orders..." className="pl-10 w-full sm:w-64" />
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingOrders && <p>Loading orders...</p>}
+                  {errorOrders && <p className="text-red-500">Error: {errorOrders}</p>}
+                  {!loadingOrders && !errorOrders && orders.length === 0 && <p>No orders found.</p>}
+                  {!loadingOrders && !errorOrders && orders.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Order ID</TableHead>
+                            <TableHead className="min-w-[120px]">Customer</TableHead>
+                            <TableHead className="min-w-[150px]">Products</TableHead>
+                            <TableHead className="min-w-[100px]">Total</TableHead>
+                            <TableHead className="min-w-[100px]">Status</TableHead>
+                            <TableHead className="min-w-[100px]">Date</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {orders.map((order) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.id}</TableCell>
+                              <TableCell>{order.customer_name}</TableCell>
+                              <TableCell>
+                                {order.order_items?.map((p) => `${p.title} (x${p.quantity})`).join(", ") || "N/A"}
+                              </TableCell>
+                              <TableCell>{formatPrice(order.total_amount)}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    order.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : order.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-blue-100 text-blue-800"
+                                  }
+                                >
+                                  {order.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "users" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 className="text-2xl font-bold">User Management</h2>
+                <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add User
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New User</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="userName">Full Name</Label>
+                          <Input id="userName" placeholder="Enter full name" />
+                        </div>
+                        <div>
+                          <Label htmlFor="userEmail">Email Address</Label>
+                          <Input id="userEmail" type="email" placeholder="Enter email address" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="userRole">Role</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.map((role) => (
+                                <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                                  {role.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="userStatus">Status</Label>
+                          <Select defaultValue="active">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="userPassword">Temporary Password</Label>
+                        <Input id="userPassword" type="password" placeholder="Enter temporary password" />
+                      </div>
+                      <div>
+                        <Label>Permissions</Label>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {permissions.map((permission) => (
+                            <div key={permission.id} className="flex items-center space-x-2">
+                              <input type="checkbox" id={permission.id} className="rounded border-gray-300" />
+                              <Label htmlFor={permission.id} className="text-sm">
+                                {permission.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            console.log("Adding new user...")
+                            setIsAddUserOpen(false)
+                          }}
+                        >
+                          Add User
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <Tabs defaultValue="users" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="users">Users</TabsTrigger>
+                  <TabsTrigger value="roles">Roles</TabsTrigger>
+                  <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="users" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <CardTitle>All Users</CardTitle>
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <Input placeholder="Search users..." className="pl-10 w-full sm:w-64" />
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Filter className="w-4 h-4 mr-2" />
+                            Filter
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[200px]">User</TableHead>
+                              <TableHead className="min-w-[120px]">Role</TableHead>
+                              <TableHead className="min-w-[100px]">Status</TableHead>
+                              <TableHead className="min-w-[150px]">Last Login</TableHead>
+                              <TableHead className="min-w-[120px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {users.map((user) => (
+                              <TableRow key={user.id}>
+                                <TableCell>
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                                      <span className="text-white text-sm font-semibold">
+                                        {user.name
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{user.name}</p>
+                                      <p className="text-sm text-gray-500">{user.email}</p>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className="bg-blue-100 text-blue-800">{user.role}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      user.status === "active"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }
+                                  >
+                                    {user.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm">{user.lastLogin}</TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button variant="outline" size="sm" onClick={() => handleEdit("user", user)}>
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDelete("user", user.id.toString(), user.name)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="roles" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <CardTitle>User Roles</CardTitle>
+                        <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
+                          <DialogTrigger asChild>
+                            <Button>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add Role
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Add New Role</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="roleName">Role Name</Label>
+                                <Input id="roleName" placeholder="Enter role name" />
+                              </div>
+                              <div>
+                                <Label htmlFor="roleDescription">Description</Label>
+                                <Textarea id="roleDescription" placeholder="Enter role description" rows={3} />
+                              </div>
+                              <div>
+                                <Label>Permissions</Label>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                  {permissions.map((permission) => (
+                                    <div key={permission.id} className="flex items-center space-x-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`role-${permission.id}`}
+                                        className="rounded border-gray-300"
+                                      />
+                                      <Label htmlFor={`role-${permission.id}`} className="text-sm">
+                                        {permission.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <Button variant="outline" onClick={() => setIsAddRoleOpen(false)}>
+                                  Cancel
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    console.log("Adding new role...")
+                                    setIsAddRoleOpen(false)
+                                  }}
+                                >
+                                  Add Role
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {roles.map((role) => (
+                          <Card key={role.id} className="border">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <h4 className="font-semibold text-lg">{role.name}</h4>
+                                  <p className="text-sm text-gray-600">{role.description}</p>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleEdit("role", role)}>
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDelete("role", role.id.toString(), role.name)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">Users:</span>
+                                  <Badge variant="secondary">{role.userCount}</Badge>
+                                </div>
+                                <div>
+                                  <span className="text-sm font-medium">Permissions:</span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {role.permissions.slice(0, 3).map((permission) => (
+                                      <Badge key={permission} variant="outline" className="text-xs">
+                                        {permission}
+                                      </Badge>
+                                    ))}
+                                    {role.permissions.length > 3 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{role.permissions.length - 3} more
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="permissions" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>System Permissions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {permissions.map((permission) => (
+                          <Card key={permission.id} className="border">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <Key className="w-5 h-5 text-gray-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold">{permission.name}</h4>
+                                    <p className="text-sm text-gray-600">{permission.description}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+
+          {activeTab === "contact-messages" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Contact Messages</h2>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <CardTitle>All Messages</CardTitle>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <Select defaultValue="new">
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="read">Read</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                          <SelectItem value="all">All</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input placeholder="Search messages..." className="pl-10 w-full sm:w-64" />
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingContactMessages && <p>Loading contact messages...</p>}
+                  {errorContactMessages && <p className="text-red-500">Error: {errorContactMessages}</p>}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length === 0 && (
+                    <p>No contact messages found.</p>
+                  )}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[300px]">Message</TableHead>
+                            <TableHead className="min-w-[150px]">Status</TableHead>
+                            <TableHead className="min-w-[150px]">Date</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {contactMessages.map((message) => (
+                            <TableRow key={message.id}>
+                              <TableCell>{message.name}</TableCell>
+                              <TableCell>{message.email}</TableCell>
+                              <TableCell>{message.message}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    message.status === "new"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : message.status === "read"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                  }
+                                >
+                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewContactMessage(message)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open dropdown menu</span>
+                                        <ChevronDown className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {message.status === "new" && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            updateContactMessageStatus(message.id, "read")
+                                            fetchContactMessages()
+                                          }}
+                                        >
+                                          Mark as Read
+                                        </DropdownMenuItem>
+                                      )}
+                                      {message.status !== "archived" && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            updateContactMessageStatus(message.id, "archived")
+                                            fetchContactMessages()
+                                          }}
+                                        >
+                                          Archive
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem
+                                        onClick={() => handleDelete("contact-message", message.id, message.name)}
+                                      >
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
         </main>
       </div>
+
+      {/* Edit Product Modal */}
+      <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editTitle">Book Title</Label>
+                  <Input
+                    id="editTitle"
+                    name="title"
+                    placeholder="Enter book title"
+                    defaultValue={editingProduct.title}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editAuthor">Author</Label>
+                  <Input
+                    id="editAuthor"
+                    name="author"
+                    placeholder="Enter author name"
+                    defaultValue={editingProduct.author}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editPrice">Price (KES)</Label>
+                  <Input
+                    id="editPrice"
+                    name="price"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingProduct.price}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editCategory">Category</Label>
+                  <Select name="category" defaultValue={editingProduct.category}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="children">Children's Books</SelectItem>
+                      <SelectItem value="educational">Educational</SelectItem>
+                      <SelectItem value="cultural">Cultural Stories</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editStock">Stock</Label>
+                <Input
+                  id="editStock"
+                  name="stock"
+                  type="number"
+                  min="0"
+                  defaultValue={editingProduct.stock ?? 0}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  name="description"
+                  defaultValue={editingProduct.description || ""}
+                  placeholder="Enter book description"
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editAgeRange">Age Range</Label>
+                  <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
+                </div>
+                <div>
+                  <Label htmlFor="editPages">Number of Pages</Label>
+                  <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editImage">Book Cover</Label>
+                {editingProduct.image_url && (
+                  <div className="mb-2">
+                    <Image
+                      src={editingProduct.image_url || "/placeholder.svg"}
+                      alt="Current Book Cover"
+                      width={80}
+                      height={100}
+                      className="rounded object-cover"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Current image</p>
+                  </div>
+                )}
+                <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+                <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Product</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Blog Modal */}
+      <Dialog open={isEditBlogOpen} onOpenChange={setIsEditBlogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Blog Post</DialogTitle>
+          </DialogHeader>
+          {editingBlog && (
+            <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="editBlogTitle">Post Title</Label>
+                <Input id="editBlogTitle" name="title" defaultValue={editingBlog.title || ""} required />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editBlogAuthor">Author</Label>
+                  <Input id="editBlogAuthor" name="author" defaultValue={editingBlog.author || ""} required />
+                </div>
+                <div>
+                  <Label htmlFor="editBlogCategory">Category</Label>
+                  <Select name="category" defaultValue={editingBlog.category || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parenting">Parenting Tips</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="culture">Cultural Stories</SelectItem>
+                      <SelectItem value="development">Child Development</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editBlogExcerpt">Excerpt</Label>
+                <Textarea
+                  id="editBlogExcerpt"
+                  name="excerpt"
+                  defaultValue={editingBlog.excerpt || ""}
+                  placeholder="Brief description of the post"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBlogContent">Content</Label>
+                <Textarea
+                  id="editBlogContent"
+                  name="content"
+                  defaultValue={editingBlog.content || ""}
+                  placeholder="Write your blog post content here..."
+                  rows={10}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBlogTags">Tags</Label>
+                <Input
+                  id="editBlogTags"
+                  name="tags"
+                  defaultValue={editingBlog.tags?.join(", ") || ""}
+                  placeholder="parenting, children, culture (comma separated)"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editFeaturedImage">Featured Image</Label>
+                <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+                <input type="hidden" name="currentImageUrl" value={editingBlog.image_url || ""} />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog.is_published} />
+                <Label htmlFor="editPublishNow">Publish immediately</Label>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Post</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Order Modal */}
+      <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+          </DialogHeader>
+          {viewingOrder && (
+            <div className="space-y-6">
+              {/* Order Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
+                  {/* <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p> */}
+                </div>
+                <Badge
+                  className={
+                    viewingOrder.status === "completed"
+                      ? "bg-green-100 text-green-800"
+                      : viewingOrder.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-blue-100 text-blue-800"
+                  }
+                >
+                  {viewingOrder.status.toUpperCase()}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Customer Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Customer Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium">{viewingOrder.customer_name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{viewingOrder.customer_email}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{viewingOrder.phone_number}</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <span className="text-sm">
+                        {viewingOrder.shipping_address_line1}, {viewingOrder.shipping_city},{" "}
+                        {viewingOrder.shipping_country}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Order Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Order Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">
+                        {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
+                        {new Date(viewingOrder.order_date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CreditCard className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">M-Pesa</span> {/* Assuming M-Pesa for now */}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold">{formatPrice(viewingOrder.total_amount)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Product Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Product Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {viewingOrder.order_items && viewingOrder.order_items.length > 0 ? (
+                    viewingOrder.order_items.map((product, index) => (
+                      <div
+                        key={product.product_id || index}
+                        className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
+                      >
+                        <Image
+                          src="/placeholder.svg?height=100&width=80" // Placeholder as product_details doesn't have image_url
+                          alt={product.title}
+                          width={80}
+                          height={100}
+                          className="rounded-lg mx-auto sm:mx-0"
+                        />
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="font-semibold text-lg">{product.title}</h4>
+                          <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
+                          <p className="text-lg font-bold text-green-600 mt-2">
+                            {formatPrice(product.price * product.quantity)}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No product details available for this order.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <div>
+                        <p className="font-medium">Order Placed</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
+                          {new Date(viewingOrder.order_date).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    {viewingOrder.status !== "pending" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Payment Confirmed</p>
+                          <p className="text-sm text-gray-500">Payment via M-Pesa</p>
+                        </div>
+                      </div>
+                    )}
+                    {viewingOrder.status === "shipped" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Order Shipped</p>
+                          <p className="text-sm text-gray-500">Package is on the way</p>
+                        </div>
+                      </div>
+                    )}
+                    {viewingOrder.status === "completed" && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">Order Delivered</p>
+                          <p className="text-sm text-gray-500">Successfully delivered to customer</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
+                  Close
+                </Button>
+                <Button>Update Status</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Contact Message Dialog */}
+      <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Contact Message Details</DialogTitle>
+          </DialogHeader>
+          {viewingContactMessage && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">From:</Label>
+                <p className="text-base">{viewingContactMessage.name}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Email:</Label>
+                <p className="text-base">{viewingContactMessage.email}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Date:</Label>
+                <p className="text-base">{new Date(viewingContactMessage.created_at).toLocaleString()}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Status:</Label>
+                <Badge
+                  className={
+                    viewingContactMessage.status === "new"
+                      ? "bg-blue-100 text-blue-800"
+                      : viewingContactMessage.status === "read"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {viewingContactMessage.status.charAt(0).toUpperCase() + viewingContactMessage.status.slice(1)}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Message:</Label>
+                <p className="text-base whitespace-pre-wrap">{viewingContactMessage.message}</p>
+              </div>
+              <div className="flex justify-end space-x-2">
+                {viewingContactMessage.status !== "archived" && (
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "archived")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <Archive className="w-4 h-4 mr-2" /> Archive
+                  </Button>
+                )}
+                {viewingContactMessage.status !== "read" && (
+                  <Button
+                    onClick={async () => {
+                      await updateContactMessageStatus(viewingContactMessage.id, "read")
+                      fetchContactMessages()
+                      setIsViewContactMessageOpen(false)
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Read
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {deleteItem?.type} "{deleteItem?.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
