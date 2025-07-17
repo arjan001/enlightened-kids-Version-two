@@ -46,7 +46,7 @@ export interface Order {
   total_amount: number
   status: "pending" | "completed" | "shipped" | "cancelled"
   order_date: string
-  product_details: Array<{
+  order_items: Array<{
     product_id: string
     title: string
     quantity: number
@@ -98,7 +98,12 @@ export async function getOrders() {
         total_amount,
         status,
         order_date,
-        product_details
+        order_items:order_items (
+          product_id,
+          title,
+          quantity,
+          price
+        )
       `,
     )
     .order("order_date", { ascending: false })
