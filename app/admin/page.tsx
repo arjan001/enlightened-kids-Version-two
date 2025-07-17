@@ -1,7 +1,5 @@
 "use client"
 
-import { Calendar } from "@/components/ui/calendar"
-
 import type React from "react"
 
 import { useState, useEffect, useCallback, useTransition } from "react"
@@ -43,6 +41,7 @@ import {
   MapPin,
   Archive,
   CheckCircle,
+  CalendarDays,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -2645,7 +2644,7 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <CalendarDays className="w-4 h-4 text-gray-500" />
                       <span className="text-sm">
                         {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
                         {new Date(viewingOrder.order_date).toLocaleTimeString([], {
