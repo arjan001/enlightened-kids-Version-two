@@ -41,7 +41,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Star,
   Archive,
   CheckCircle,
 } from "lucide-react"
@@ -79,7 +78,7 @@ import {
   Cell,
 } from "recharts"
 import Image from "next/image"
-import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers } from "./actions" // Import Product Server Actions and signOutUser, getCustomers
+import { addProduct, getProducts, updateProduct, deleteProduct, signOutUser, getCustomers, getOrders } from "./actions" // Import Product Server Actions and signOutUser, getCustomers, getOrders
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions" // Import Blog Server Actions
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions" // Import Contact Server Actions
 import { useToast } from "@/components/ui/use-toast"
@@ -136,16 +135,33 @@ interface ContactMessage {
 // Define a type for customer data
 interface Customer {
   id: string
-  first_name: string
-  last_name: string
-  email: string
-  phone: string | null
-  address: string | null
-  city: string | null
-  postal_code: string | null
+  customer_name: string
+  customer_email: string
+  phone_number: string | null
+  shipping_address_line1: string | null
+  shipping_city: string | null
+  shipping_country: string | null
   created_at: string
-  updated_at: string | null
-  country?: string | null
+}
+
+// Define a type for order data
+interface Order {
+  id: string
+  customer_name: string
+  customer_email: string
+  phone_number: string | null
+  shipping_address_line1: string
+  shipping_city: string
+  shipping_country: string
+  total_amount: number
+  status: "pending" | "completed" | "shipped" | "cancelled"
+  order_date: string
+  product_details: Array<{
+    product_id: string
+    title: string
+    quantity: number
+    price: number
+  }>
 }
 
 const initialState = {
@@ -177,25 +193,6 @@ const trafficData = [
   { name: "Direct", value: 45, color: "#8884d8" },
   { name: "Social Media", value: 30, color: "#82ca9d" },
   { name: "Search Engines", value: 25, color: "#ffc658" },
-]
-
-const recentOrders = [
-  {
-    id: "ORD-001",
-    customer: "Jane Doe",
-    book: "Colours of Me",
-    amount: 1700,
-    status: "completed",
-    date: "2024-01-15",
-    time: "14:30",
-    paymentMethod: "M-Pesa",
-    transactionId: "TXN-MP-001",
-    customerEmail: "jane.doe@email.com",
-    customerPhone: "+254 712 345 678",
-    customerAddress: "123 Nairobi Street, Nairobi",
-    reviews: 4.5,
-    totalReviews: 12,
-  },
 ]
 
 const paymentMethods = [
@@ -288,10 +285,7 @@ const permissions = [
 // ----------------------------------------------------------------------
 // 🛠  Helpers  – avoid "undefined.charAt" runtime errors
 // ----------------------------------------------------------------------
-const getCustomerInitials = (customer: any) => {
-  if (customer?.first_name && customer?.last_name) {
-    return `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`
-  }
+const getCustomerInitials = (customer: Customer) => {
   if (customer?.customer_name) {
     return customer.customer_name
       .split(" ")
@@ -302,10 +296,7 @@ const getCustomerInitials = (customer: any) => {
   return "?"
 }
 
-const getCustomerFullName = (customer: any) => {
-  if (customer?.first_name && customer?.last_name) {
-    return `${customer.first_name} ${customer.last_name}`
-  }
+const getCustomerFullName = (customer: Customer) => {
   return customer?.customer_name ?? "Unknown"
 }
 
@@ -330,7 +321,7 @@ export default function AdminDashboard() {
   )
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null)
-  const [viewingOrder, setViewingOrder] = useState<any>(null)
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null) // Use Order interface
   const [editingUser, setEditingUser] = useState<any>(null)
   const [editingRole, setEditingRole] = useState<any>(null)
 
@@ -349,6 +340,10 @@ export default function AdminDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]) // New state for customers
   const [loadingCustomers, setLoadingCustomers] = useState(true) // New state for loading customers
   const [errorCustomers, setErrorCustomers] = useState<string | null>(null) // New state for customers error
+
+  const [orders, setOrders] = useState<Order[]>([]) // New state for orders
+  const [loadingOrders, setLoadingOrders] = useState(true) // New state for loading orders
+  const [errorOrders, setErrorOrders] = useState<string | null>(null) // New state for orders error
 
   const [user, setUser] = useState<any>(null) // State to hold current user info
 
@@ -437,12 +432,28 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchOrders = useCallback(async () => {
+    setLoadingOrders(true)
+    setErrorOrders(null)
+    try {
+      const fetchedOrders = await getOrders()
+      setOrders(fetchedOrders)
+      dashboardStats.pendingOrders = fetchedOrders.filter((order) => order.status === "pending").length // Update dashboard stat
+    } catch (error: any) {
+      setErrorOrders(error.message || "Failed to fetch orders")
+      console.error("Failed to fetch orders:", error)
+    } finally {
+      setLoadingOrders(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchProducts()
     fetchBlogPosts()
     fetchContactMessages() // Fetch contact messages on component mount
     fetchCustomers() // Fetch customers on component mount
-  }, [fetchProducts, fetchBlogPosts, fetchContactMessages, fetchCustomers])
+    fetchOrders() // Fetch orders on component mount
+  }, [fetchProducts, fetchBlogPosts, fetchContactMessages, fetchCustomers, fetchOrders])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-KE", {
@@ -473,7 +484,8 @@ export default function AdminDashboard() {
     setIsDeleteAlertOpen(true)
   }
 
-  const handleViewOrder = (order: any) => {
+  const handleViewOrder = (order: Order) => {
+    // Use Order interface
     setViewingOrder(order)
     setIsViewOrderOpen(true)
   }
@@ -904,44 +916,62 @@ export default function AdminDashboard() {
                   <CardTitle>Recent Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[100px]">Order ID</TableHead>
-                          <TableHead className="min-w-[120px]">Customer</TableHead>
-                          <TableHead className="min-w-[150px]">Book</TableHead>
-                          <TableHead className="min-w-[100px]">Amount</TableHead>
-                          <TableHead className="min-w-[100px]">Status</TableHead>
-                          <TableHead className="min-w-[100px]">Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{order.customer}</TableCell>
-                            <TableCell>{order.book}</TableCell>
-                            <TableCell>{formatPrice(order.amount)}</TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  order.status === "completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : order.status === "pending"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-blue-100 text-blue-800"
-                                }
-                              >
-                                {order.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{order.date}</TableCell>
+                  {loadingOrders && <p>Loading orders...</p>}
+                  {errorOrders && <p className="text-red-500">Error: {errorOrders}</p>}
+                  {!loadingOrders && !errorOrders && orders.length === 0 && <p>No orders found.</p>}
+                  {!loadingOrders && !errorOrders && orders.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Order ID</TableHead>
+                            <TableHead className="min-w-[120px]">Customer</TableHead>
+                            <TableHead className="min-w-[150px]">Products</TableHead>
+                            <TableHead className="min-w-[100px]">Amount</TableHead>
+                            <TableHead className="min-w-[100px]">Status</TableHead>
+                            <TableHead className="min-w-[100px]">Date</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {orders.map((order) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.id}</TableCell>
+                              <TableCell>{order.customer_name}</TableCell>
+                              <TableCell>
+                                {order.product_details?.map((p) => `${p.title} (x${p.quantity})`).join(", ") || "N/A"}
+                              </TableCell>
+                              <TableCell>{formatPrice(order.total_amount)}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    order.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : order.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-blue-100 text-blue-800"
+                                  }
+                                >
+                                  {order.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1790,11 +1820,11 @@ export default function AdminDashboard() {
                                   <span className="font-medium">{getCustomerFullName(customer)}</span>
                                 </div>
                               </TableCell>
-                              <TableCell>{customer.email}</TableCell>
-                              <TableCell>{customer.phone || "N/A"}</TableCell>
-                              <TableCell>{customer.address || "N/A"}</TableCell>
-                              <TableCell>{customer.city || "N/A"}</TableCell>
-                              <TableCell>{customer.country || "N/A"}</TableCell>
+                              <TableCell>{customer.customer_email}</TableCell>
+                              <TableCell>{customer.phone_number || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_address_line1 || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_city || "N/A"}</TableCell>
+                              <TableCell>{customer.shipping_country || "N/A"}</TableCell>
                               <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
                             </TableRow>
                           ))}
@@ -1835,55 +1865,62 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[100px]">Order ID</TableHead>
-                          <TableHead className="min-w-[120px]">Customer</TableHead>
-                          <TableHead className="min-w-[150px]">Products</TableHead>
-                          <TableHead className="min-w-[100px]">Total</TableHead>
-                          <TableHead className="min-w-[100px]">Status</TableHead>
-                          <TableHead className="min-w-[100px]">Date</TableHead>
-                          <TableHead className="min-w-[120px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{order.customer}</TableCell>
-                            <TableCell>{order.book}</TableCell>
-                            <TableCell>{formatPrice(order.amount)}</TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  order.status === "completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : order.status === "pending"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-blue-100 text-blue-800"
-                                }
-                              >
-                                {order.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{order.date}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button variant="outline" size="sm">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                  {loadingOrders && <p>Loading orders...</p>}
+                  {errorOrders && <p className="text-red-500">Error: {errorOrders}</p>}
+                  {!loadingOrders && !errorOrders && orders.length === 0 && <p>No orders found.</p>}
+                  {!loadingOrders && !errorOrders && orders.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Order ID</TableHead>
+                            <TableHead className="min-w-[120px]">Customer</TableHead>
+                            <TableHead className="min-w-[150px]">Products</TableHead>
+                            <TableHead className="min-w-[100px]">Total</TableHead>
+                            <TableHead className="min-w-[100px]">Status</TableHead>
+                            <TableHead className="min-w-[100px]">Date</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {orders.map((order) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.id}</TableCell>
+                              <TableCell>{order.customer_name}</TableCell>
+                              <TableCell>
+                                {order.product_details?.map((p) => `${p.title} (x${p.quantity})`).join(", ") || "N/A"}
+                              </TableCell>
+                              <TableCell>{formatPrice(order.total_amount)}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    order.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : order.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-blue-100 text-blue-800"
+                                  }
+                                >
+                                  {order.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -2278,7 +2315,7 @@ export default function AdminDashboard() {
                                         : "bg-gray-100 text-gray-800"
                                   }
                                 >
-                                  {message.status}
+                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
                                 </Badge>
                               </TableCell>
                               <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
@@ -2546,7 +2583,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
-                  <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p>
+                  {/* <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p> */}
                 </div>
                 <Badge
                   className={
@@ -2570,19 +2607,22 @@ export default function AdminDashboard() {
                   <CardContent className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{viewingOrder.customer}</span>
+                      <span className="font-medium">{viewingOrder.customer_name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Mail className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.customerEmail}</span>
+                      <span className="text-sm">{viewingOrder.customer_email}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Phone className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.customerPhone}</span>
+                      <span className="text-sm">{viewingOrder.phone_number}</span>
                     </div>
                     <div className="flex items-start space-x-2">
                       <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <span className="text-sm">{viewingOrder.customerAddress}</span>
+                      <span className="text-sm">
+                        {viewingOrder.shipping_address_line1}, {viewingOrder.shipping_city},{" "}
+                        {viewingOrder.shipping_country}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -2596,16 +2636,20 @@ export default function AdminDashboard() {
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4 text-gray-500" />
                       <span className="text-sm">
-                        {viewingOrder.date} at {viewingOrder.time}
+                        {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
+                        {new Date(viewingOrder.order_date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <CreditCard className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.paymentMethod}</span>
+                      <span className="text-sm">M-Pesa</span> {/* Assuming M-Pesa for now */}
                     </div>
                     <div className="flex items-center space-x-2">
                       <DollarSign className="w-4 h-4 text-gray-500" />
-                      <span className="font-semibold">{formatPrice(viewingOrder.amount)}</span>
+                      <span className="font-semibold">{formatPrice(viewingOrder.total_amount)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -2617,35 +2661,31 @@ export default function AdminDashboard() {
                   <CardTitle className="text-lg">Product Details</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                    <Image
-                      src="/placeholder.svg?height=100&width=80"
-                      alt={viewingOrder.book}
-                      width={80}
-                      height={100}
-                      className="rounded-lg mx-auto sm:mx-0"
-                    />
-                    <div className="flex-1 text-center sm:text-left">
-                      <h4 className="font-semibold text-lg">{viewingOrder.book}</h4>
-                      <p className="text-sm text-gray-600">by Cheryl Nyakio</p>
-                      <div className="flex items-center justify-center sm:justify-start space-x-2 mt-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < Math.floor(viewingOrder.reviews) ? "text-yellow-400 fill-current" : "text-gray-300"
-                              }`}
-                            />
-                          ))}
+                  {viewingOrder.product_details && viewingOrder.product_details.length > 0 ? (
+                    viewingOrder.product_details.map((product, index) => (
+                      <div
+                        key={product.product_id || index}
+                        className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
+                      >
+                        <Image
+                          src="/placeholder.svg?height=100&width=80" // Placeholder as product_details doesn't have image_url
+                          alt={product.title}
+                          width={80}
+                          height={100}
+                          className="rounded-lg mx-auto sm:mx-0"
+                        />
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="font-semibold text-lg">{product.title}</h4>
+                          <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
+                          <p className="text-lg font-bold text-green-600 mt-2">
+                            {formatPrice(product.price * product.quantity)}
+                          </p>
                         </div>
-                        <span className="text-sm text-gray-600">
-                          {viewingOrder.reviews} ({viewingOrder.totalReviews} reviews)
-                        </span>
                       </div>
-                      <p className="text-lg font-bold text-green-600 mt-2">{formatPrice(viewingOrder.amount)}</p>
-                    </div>
-                  </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No product details available for this order.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -2661,7 +2701,11 @@ export default function AdminDashboard() {
                       <div>
                         <p className="font-medium">Order Placed</p>
                         <p className="text-sm text-gray-500">
-                          {viewingOrder.date} at {viewingOrder.time}
+                          {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
+                          {new Date(viewingOrder.order_date).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
                     </div>
@@ -2670,7 +2714,7 @@ export default function AdminDashboard() {
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <div>
                           <p className="font-medium">Payment Confirmed</p>
-                          <p className="text-sm text-gray-500">Payment via {viewingOrder.paymentMethod}</p>
+                          <p className="text-sm text-gray-500">Payment via M-Pesa</p>
                         </div>
                       </div>
                     )}

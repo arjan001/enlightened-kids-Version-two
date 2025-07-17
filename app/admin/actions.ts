@@ -11,9 +11,9 @@ export interface Customer {
   customer_name: string
   customer_email: string
   phone_number: string | null
-  shipping_address_line1: string
-  shipping_city: string
-  shipping_country: string
+  shipping_address_line1: string | null
+  shipping_city: string | null
+  shipping_country: string | null
   created_at: string // aliased from order_date
 }
 
@@ -33,6 +33,25 @@ export interface ContactMessage {
   email: string
   message: string
   created_at: string
+}
+
+export interface Order {
+  id: string
+  customer_name: string
+  customer_email: string
+  phone_number: string | null
+  shipping_address_line1: string
+  shipping_city: string
+  shipping_country: string
+  total_amount: number
+  status: "pending" | "completed" | "shipped" | "cancelled"
+  order_date: string
+  product_details: Array<{
+    product_id: string
+    title: string
+    quantity: number
+    price: number
+  }>
 }
 
 export async function getCustomers() {
@@ -57,6 +76,36 @@ export async function getCustomers() {
   if (error) {
     console.error("Error fetching customers:", error)
     throw new Error(`Failed to fetch customers: ${error.message}`)
+  }
+
+  return data
+}
+
+export async function getOrders() {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      `
+        id,
+        customer_name,
+        customer_email,
+        phone_number,
+        shipping_address_line1,
+        shipping_city,
+        shipping_country,
+        total_amount,
+        status,
+        order_date,
+        product_details
+      `,
+    )
+    .order("order_date", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching orders:", error)
+    throw new Error(`Failed to fetch orders: ${error.message}`)
   }
 
   return data
