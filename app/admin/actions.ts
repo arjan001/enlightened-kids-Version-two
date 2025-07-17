@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants" // Declare the variable here
+// When running in the browser we want the public client:
+import { createClient as createBrowserSupabase } from "@/lib/supabase/client"
 
 export interface Customer {
   id: string
@@ -108,7 +110,7 @@ export async function deleteContactMessage(id: string) {
 }
 
 async function deleteImage(imageUrl: string | undefined) {
-  const supabase = createClient()
+  const supabase = createBrowserSupabase()
   if (!imageUrl) return
 
   const urlParts = imageUrl.split("/")
@@ -137,7 +139,7 @@ import { randomUUID } from "crypto"
  * Upload a file to Supabase Storage and return the public URL.
  */
 async function uploadImage(file: File): Promise<string | null> {
-  const supabase = createClient()
+  const supabase = createBrowserSupabase()
   if (!file || file.size === 0) return null
 
   const extension = file.name.split(".").pop() || "png"
@@ -162,8 +164,7 @@ async function uploadImage(file: File): Promise<string | null> {
  * Create a new product.
  */
 export async function addProduct(formData: FormData) {
-  "use server"
-  const supabase = createClient()
+  const supabase = createBrowserSupabase()
 
   // Required fields
   const title = formData.get("title") as string
@@ -196,7 +197,6 @@ export async function addProduct(formData: FormData) {
 
   if (error) throw new Error(`Failed to add product: ${error.message}`)
 
-  revalidatePath("/admin")
   return { success: true }
 }
 
@@ -243,8 +243,7 @@ export async function getFirstProduct() {
  * Update an existing product.
  */
 export async function updateProduct(id: string, formData: FormData) {
-  "use server"
-  const supabase = createClient()
+  const supabase = createBrowserSupabase()
 
   // Grab current image URL if supplied
   let image_url = (formData.get("currentImageUrl") as string) || null
@@ -273,7 +272,6 @@ export async function updateProduct(id: string, formData: FormData) {
 
   if (error) throw new Error(`Failed to update product: ${error.message}`)
 
-  revalidatePath("/admin")
   return { success: true }
 }
 
@@ -281,15 +279,13 @@ export async function updateProduct(id: string, formData: FormData) {
  * Delete a product and its storage image (if any).
  */
 export async function deleteProduct(id: string, imageUrl?: string) {
-  "use server"
-  const supabase = createClient()
+  const supabase = createBrowserSupabase()
 
   if (imageUrl) await deleteImage(imageUrl)
 
   const { error } = await supabase.from("products").delete().eq("id", id)
   if (error) throw new Error(`Failed to delete product: ${error.message}`)
 
-  revalidatePath("/admin")
   return { success: true }
 }
 
