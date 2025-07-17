@@ -204,6 +204,29 @@ export async function getProducts() {
 }
 
 /**
+ * Fetch the very first product in the database
+ * (used by /books to show the main title).
+ */
+export async function getFirstProduct() {
+  // NOTE: this intentionally **does not** use `"use server"`
+  // because it is imported by a Client Component.
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single()
+
+  if (error) {
+    console.error("Error fetching first product:", error)
+    throw new Error(`Failed to fetch first product: ${error.message}`)
+  }
+
+  return data
+}
+
+/**
  * Update an existing product.
  */
 export async function updateProduct(id: string, formData: FormData) {

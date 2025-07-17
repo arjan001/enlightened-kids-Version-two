@@ -2321,110 +2321,112 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editTitle">Book Title</Label>
-                <Input
-                  id="editTitle"
-                  name="title"
-                  placeholder="Enter book title"
-                  defaultValue={editingProduct?.title}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="editAuthor">Author</Label>
-                <Input
-                  id="editAuthor"
-                  name="author"
-                  placeholder="Enter author name"
-                  defaultValue={editingProduct?.author}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editPrice">Price (KES)</Label>
-                <Input
-                  id="editPrice"
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  defaultValue={editingProduct?.price}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="editCategory">Category</Label>
-                <Select name="category" defaultValue={editingProduct?.category}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="children">Children's Books</SelectItem>
-                    <SelectItem value="educational">Educational</SelectItem>
-                    <SelectItem value="cultural">Cultural Stories</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="editStock">Stock</Label>
-              <Input
-                id="editStock"
-                name="stock"
-                type="number"
-                min="0"
-                defaultValue={editingProduct?.stock ?? 0}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="editDescription">Description</Label>
-              <Textarea
-                id="editDescription"
-                name="description"
-                defaultValue={editingProduct?.description || ""}
-                placeholder="Enter book description"
-                rows={4}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editAgeRange">Age Range</Label>
-                <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
-              </div>
-              <div>
-                <Label htmlFor="editPages">Number of Pages</Label>
-                <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="editImage">Book Cover</Label>
-              {editingProduct.image_url && (
-                <div className="mb-2">
-                  <Image
-                    src={editingProduct.image_url || "/placeholder.svg"}
-                    alt="Current Book Cover"
-                    width={80}
-                    height={100}
-                    className="rounded object-cover"
+          {editingProduct && (
+            <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editTitle">Book Title</Label>
+                  <Input
+                    id="editTitle"
+                    name="title"
+                    placeholder="Enter book title"
+                    defaultValue={editingProduct.title}
+                    required
                   />
-                  <p className="text-xs text-gray-500 mt-1">Current image</p>
                 </div>
-              )}
-              <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-              <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Update Product</Button>
-            </div>
-          </form>
+                <div>
+                  <Label htmlFor="editAuthor">Author</Label>
+                  <Input
+                    id="editAuthor"
+                    name="author"
+                    placeholder="Enter author name"
+                    defaultValue={editingProduct.author}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editPrice">Price (KES)</Label>
+                  <Input
+                    id="editPrice"
+                    name="price"
+                    type="number"
+                    step="0.01"
+                    defaultValue={editingProduct.price}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editCategory">Category</Label>
+                  <Select name="category" defaultValue={editingProduct.category}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="children">Children's Books</SelectItem>
+                      <SelectItem value="educational">Educational</SelectItem>
+                      <SelectItem value="cultural">Cultural Stories</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editStock">Stock</Label>
+                <Input
+                  id="editStock"
+                  name="stock"
+                  type="number"
+                  min="0"
+                  defaultValue={editingProduct.stock ?? 0}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  name="description"
+                  defaultValue={editingProduct.description || ""}
+                  placeholder="Enter book description"
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editAgeRange">Age Range</Label>
+                  <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
+                </div>
+                <div>
+                  <Label htmlFor="editPages">Number of Pages</Label>
+                  <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="editImage">Book Cover</Label>
+                {editingProduct.image_url && (
+                  <div className="mb-2">
+                    <Image
+                      src={editingProduct.image_url || "/placeholder.svg"}
+                      alt="Current Book Cover"
+                      width={80}
+                      height={100}
+                      className="rounded object-cover"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Current image</p>
+                  </div>
+                )}
+                <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+                <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Product</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
