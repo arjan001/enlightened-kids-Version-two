@@ -2,9 +2,9 @@
 
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
-import { BOOKS_BUCKET_NAME } from "@/constants"
+import { BOOKS_BUCKET_NAME } from "@/constants" // Ensure this import is correct
 import { createClient } from "@/lib/supabase/server" // server-side client
-import type { SupabaseClient } from "@supabase/supabase-js" // Declare SupabaseClient
+import type { SupabaseClient } from "@supabase/supabase-js"
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
@@ -185,7 +185,7 @@ export async function getContactMessages() {
 /* -------------------------------------------------------------------------- */
 
 export async function deleteBlogPost(id: string, imageUrl?: string) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
   if (imageUrl) {
     await deleteImage(imageUrl)
   }
@@ -214,7 +214,7 @@ export async function deleteContactMessage(id: string) {
 /* -------------------------------------------------------------------------- */
 
 async function deleteImage(imageUrl: string | undefined) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
   if (!imageUrl) return
 
   const urlParts = imageUrl.split("/")
@@ -236,24 +236,33 @@ async function deleteImage(imageUrl: string | undefined) {
  */
 async function uploadImage(file: File): Promise<string | null> {
   const supabase: SupabaseClient = createClient()
-  if (!file || file.size === 0) return null
+  console.log("[uploadImage] Received file:", file.name, file.size, file.type)
+  if (!file || file.size === 0) {
+    console.log("[uploadImage] File is null or empty, returning null.")
+    return null
+  }
 
-  // 🔒 5 MB safety-limit – edit to taste.
   const MAX_SIZE = 5 * 1024 * 1024
   if (file.size > MAX_SIZE) {
+    console.log("[uploadImage] File size exceeds MAX_SIZE.")
     throw new Error("Image is larger than 5 MB. Please upload a smaller file.")
   }
 
   const extension = file.name.split(".").pop() || "png"
   const filePath = `${randomUUID()}.${extension}`
+  console.log("[uploadImage] Uploading to path:", filePath)
 
   try {
     const { error: uploadError } = await supabase.storage
-      .from(BOOKS_BUCKET_NAME)
+      .from(BOOKS_BUCKET_NAME) // Ensure BOOKS_BUCKET_NAME is correctly resolved here
       .upload(filePath, file, { contentType: file.type })
 
-    if (uploadError) throw uploadError
+    if (uploadError) {
+      console.error("[uploadImage] Supabase upload error:", uploadError)
+      throw uploadError
+    }
   } catch (err: any) {
+    console.error("[uploadImage] Caught error during upload:", err)
     /* Supabase returns plain-text on 413 -> JSON parse fails -> err.message starts with
        ‘Unexpected token’ – turn that into a friendly message. */
     if (err.message?.startsWith("Unexpected token")) {
@@ -266,6 +275,7 @@ async function uploadImage(file: File): Promise<string | null> {
   const {
     data: { publicUrl },
   } = supabase.storage.from(BOOKS_BUCKET_NAME).getPublicUrl(filePath)
+  console.log("[uploadImage] Public URL generated:", publicUrl)
 
   return publicUrl
 }
@@ -274,7 +284,7 @@ async function uploadImage(file: File): Promise<string | null> {
  * Create a new product.
  */
 export async function addProduct(formData: FormData) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
 
   // Required fields
   const title = formData.get("title") as string
@@ -314,7 +324,7 @@ export async function addProduct(formData: FormData) {
  * Fetch all products ordered by newest first.
  */
 export async function getProducts() {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
 
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
 
@@ -347,14 +357,25 @@ export async function getFirstProduct() {
  */
 export async function updateProduct(id: string, formData: FormData) {
   try {
+    console.log("[updateProduct] Updating product with ID:", id)
     // Grab current image URL if supplied
     let image_url = (formData.get("currentImageUrl") as string) || null
     const newFile = formData.get("image") as File | null
 
+    console.log("[updateProduct] Current image URL from form:", image_url)
+    console.log("[updateProduct] New file from form:", newFile?.name, newFile?.size, newFile?.type)
+
     // If a new file was provided, upload it and remove the old one
     if (newFile && newFile.size > 0) {
-      if (image_url) await deleteImage(image_url)
+      console.log("[updateProduct] New file detected, attempting upload.")
+      if (image_url) {
+        console.log("[updateProduct] Deleting old image:", image_url)
+        await deleteImage(image_url)
+      }
       image_url = await uploadImage(newFile)
+      console.log("[updateProduct] New image_url after upload:", image_url)
+    } else {
+      console.log("[updateProduct] No new file or empty file, retaining current image URL.")
     }
 
     const updates: Record<string, unknown> = {
@@ -366,17 +387,23 @@ export async function updateProduct(id: string, formData: FormData) {
       description: formData.get("description"),
       age_range: formData.get("ageRange"),
       pages: formData.get("pages") ? Number(formData.get("pages") as string) : null,
-      image_url,
+      image_url, // Ensure this is the updated or retained URL
       updated_at: new Date().toISOString(),
     }
+    console.log("[updateProduct] Updates object before Supabase call:", updates)
 
-    const supabase: SupabaseClient = createClient() // Declare SupabaseClient
+    const supabase: SupabaseClient = createClient()
     const { error } = await supabase.from("products").update(updates).eq("id", id)
 
-    if (error) throw new Error(`Failed to update product: ${error.message}`)
+    if (error) {
+      console.error("[updateProduct] Supabase update error:", error)
+      throw new Error(`Failed to update product: ${error.message}`)
+    }
 
+    console.log("[updateProduct] Product updated successfully.")
     return { success: true }
   } catch (err: any) {
+    console.error("[updateProduct] Caught error in updateProduct:", err)
     /* Convert to plain object so Next.js action serialises cleanly */
     return { success: false, error: err.message ?? "Unknown error" }
   }
@@ -386,7 +413,7 @@ export async function updateProduct(id: string, formData: FormData) {
  * Delete a product and its storage image (if any).
  */
 export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
 
   if (imageUrl) await deleteImage(imageUrl)
 
