@@ -1,28 +1,20 @@
-import { createServerClient } from "@supabase/ssr"
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
 import type { NextRequest, NextResponse } from "next/server"
 
 /**
- * Factory that returns a Supabase client for Next.js middleware.
- * It keeps cookies in-sync using the getAll / setAll helpers
- * recommended by Supabase for the App Router.
+ * Supabase helper for Next.js middleware.
+ *
+ * Uses the standard ESM SDK (`@supabase/supabase-js`) instead of the
+ * experimental `@supabase/ssr`, which is not available in the preview runtime.
+ *
+ * Because middleware is a stateless environment, we disable automatic session
+ * persistence and URL-based session detection.
  */
-export function createClient(request: NextRequest, response: NextResponse) {
-  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      // Read ALL cookies that came with the request
-      getAll() {
-        return request.cookies.getAll()
-      },
-
-      /**
-       * Write ALL cookies that Supabase wants to set on the response.
-       * We **must** loop and set them individually; do NOT use get / set / remove.
-       */
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options)
-        })
-      },
+export function createClient(_request: NextRequest, _response: NextResponse): SupabaseClient {
+  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: {
+      persistSession: false,
+      detectSessionInUrl: false,
     },
   })
 }
