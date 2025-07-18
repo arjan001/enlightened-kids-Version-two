@@ -2805,27 +2805,31 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   {viewingOrder.order_items && viewingOrder.order_items.length > 0 ? (
-                    viewingOrder.order_items.map((product, index) => (
-                      <div
-                        key={product.product_id || index}
-                        className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
-                      >
-                        <Image
-                          src="/placeholder.svg?height=100&width=80" // Placeholder as product_details doesn't have image_url
-                          alt={product.title}
-                          width={80}
-                          height={100}
-                          className="rounded-lg mx-auto sm:mx-0"
-                        />
-                        <div className="flex-1 text-center sm:text-left">
-                          <h4 className="font-semibold text-lg">{product.title}</h4>
-                          <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
-                          <p className="text-lg font-bold text-green-600 mt-2">
-                            {formatPrice(product.price * product.quantity)}
-                          </p>
+                    viewingOrder.order_items.map((product, index) => {
+                      const productDetails = products.find((p) => p.id === product.product_id)
+                      const imageUrl = productDetails?.image_url || "/placeholder.svg?height=100&width=80"
+                      return (
+                        <div
+                          key={product.product_id || index}
+                          className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
+                        >
+                          <Image
+                            src={imageUrl || "/placeholder.svg"}
+                            alt={product.title}
+                            width={80}
+                            height={100}
+                            className="rounded-lg object-cover mx-auto sm:mx-0"
+                          />
+                          <div className="flex-1 text-center sm:text-left">
+                            <h4 className="font-semibold text-lg">{product.title}</h4>
+                            <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
+                            <p className="text-lg font-bold text-green-600 mt-2">
+                              {formatPrice(product.price * product.quantity)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   ) : (
                     <p className="text-gray-500">No product details available for this order.</p>
                   )}

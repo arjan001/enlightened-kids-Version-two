@@ -79,7 +79,7 @@ export default async function HomePage() {
                   height={500}
                   className="rounded-lg shadow-2xl"
                 />
-                <Badge className="absolute top-4 right-4 bg-red-500 text-white px-3 py-2">Save</Badge>
+                
               </div>
             </div>
 

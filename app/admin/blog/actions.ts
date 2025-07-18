@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-export async function createBlogPost(formData: FormData) {
+export async function addBlogPost(formData: FormData) {
   const supabase = createClient()
 
   const {
