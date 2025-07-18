@@ -3,8 +3,8 @@
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants"
-
 import { createClient } from "@/lib/supabase/server" // server-side client
+import type { SupabaseClient } from "@supabase/supabase-js" // Declare SupabaseClient
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
@@ -63,7 +63,7 @@ export interface Order {
 /* -------------------------------------------------------------------------- */
 
 export async function getCustomers() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
 
   const { data, error } = await supabase
     .from("orders")
@@ -90,7 +90,7 @@ export async function getCustomers() {
 }
 
 export async function getOrders() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
 
   const { data, error } = await supabase
     .from("orders")
@@ -123,7 +123,7 @@ export async function getOrders() {
  * Fetches the count of orders with 'pending' status.
  */
 export async function getPendingOrdersCount(): Promise<number> {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { count, error } = await supabase.from("orders").select("id", { count: "exact" }).eq("status", "pending")
 
   if (error) {
@@ -139,7 +139,7 @@ export async function getPendingOrdersCount(): Promise<number> {
  * NOTE: we removed the non-existent updated_at column.
  */
 export async function updateOrderStatus(orderId: string, newStatus: Order["status"]) {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
 
   console.log(`[Server Action] Attempting to update order ${orderId} to status: ${newStatus}`)
 
@@ -159,7 +159,7 @@ export async function updateOrderStatus(orderId: string, newStatus: Order["statu
 }
 
 export async function getBlogPosts() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
 
   if (error) {
@@ -170,7 +170,7 @@ export async function getBlogPosts() {
 }
 
 export async function getContactMessages() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { data, error } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false })
 
   if (error) {
@@ -185,7 +185,7 @@ export async function getContactMessages() {
 /* -------------------------------------------------------------------------- */
 
 export async function deleteBlogPost(id: string, imageUrl?: string) {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient() // Changed to server client
   if (imageUrl) {
     await deleteImage(imageUrl)
   }
@@ -199,7 +199,7 @@ export async function deleteBlogPost(id: string, imageUrl?: string) {
 }
 
 export async function deleteContactMessage(id: string) {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { error } = await supabase.from("contact_messages").delete().eq("id", id)
   if (error) {
     console.error("Error deleting contact message:", error)
@@ -214,7 +214,7 @@ export async function deleteContactMessage(id: string) {
 /* -------------------------------------------------------------------------- */
 
 async function deleteImage(imageUrl: string | undefined) {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient() // Changed to server client
   if (!imageUrl) return
 
   const urlParts = imageUrl.split("/")
@@ -235,18 +235,32 @@ async function deleteImage(imageUrl: string | undefined) {
  * Upload a file to Supabase Storage and return the public URL.
  */
 async function uploadImage(file: File): Promise<string | null> {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient()
   if (!file || file.size === 0) return null
+
+  // 🔒 5 MB safety-limit – edit to taste.
+  const MAX_SIZE = 5 * 1024 * 1024
+  if (file.size > MAX_SIZE) {
+    throw new Error("Image is larger than 5 MB. Please upload a smaller file.")
+  }
 
   const extension = file.name.split(".").pop() || "png"
   const filePath = `${randomUUID()}.${extension}`
 
-  // Upload
-  const { error: uploadError } = await supabase.storage
-    .from(BOOKS_BUCKET_NAME)
-    .upload(filePath, file, { contentType: file.type })
+  try {
+    const { error: uploadError } = await supabase.storage
+      .from(BOOKS_BUCKET_NAME)
+      .upload(filePath, file, { contentType: file.type })
 
-  if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`)
+    if (uploadError) throw uploadError
+  } catch (err: any) {
+    /* Supabase returns plain-text on 413 -> JSON parse fails -> err.message starts with
+       ‘Unexpected token’ – turn that into a friendly message. */
+    if (err.message?.startsWith("Unexpected token")) {
+      throw new Error("Upload failed: file too large (Supabase 413). Try a smaller image.")
+    }
+    throw new Error(`Failed to upload image: ${err.message}`)
+  }
 
   // Public URL
   const {
@@ -260,7 +274,7 @@ async function uploadImage(file: File): Promise<string | null> {
  * Create a new product.
  */
 export async function addProduct(formData: FormData) {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient() // Changed to server client
 
   // Required fields
   const title = formData.get("title") as string
@@ -300,7 +314,7 @@ export async function addProduct(formData: FormData) {
  * Fetch all products ordered by newest first.
  */
 export async function getProducts() {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient() // Changed to server client
 
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
 
@@ -312,7 +326,7 @@ export async function getProducts() {
  * Fetch the very first product in the database
  */
 export async function getFirstProduct() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { data, error } = await supabase
     .from("products")
     .select("*")
@@ -332,43 +346,47 @@ export async function getFirstProduct() {
  * Update an existing product.
  */
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = createClient() // Changed to server client
+  try {
+    // Grab current image URL if supplied
+    let image_url = (formData.get("currentImageUrl") as string) || null
+    const newFile = formData.get("image") as File | null
 
-  // Grab current image URL if supplied
-  let image_url = (formData.get("currentImageUrl") as string) || null
-  const newFile = formData.get("image") as File | null
+    // If a new file was provided, upload it and remove the old one
+    if (newFile && newFile.size > 0) {
+      if (image_url) await deleteImage(image_url)
+      image_url = await uploadImage(newFile)
+    }
 
-  // If a new file was provided, upload it and remove the old one
-  if (newFile && newFile.size > 0) {
-    if (image_url) await deleteImage(image_url)
-    image_url = await uploadImage(newFile)
+    const updates: Record<string, unknown> = {
+      title: formData.get("title"),
+      author: formData.get("author"),
+      price: Number(formData.get("price") as string),
+      category: formData.get("category"),
+      stock: Number(formData.get("stock") as string),
+      description: formData.get("description"),
+      age_range: formData.get("ageRange"),
+      pages: formData.get("pages") ? Number(formData.get("pages") as string) : null,
+      image_url,
+      updated_at: new Date().toISOString(),
+    }
+
+    const supabase: SupabaseClient = createClient() // Declare SupabaseClient
+    const { error } = await supabase.from("products").update(updates).eq("id", id)
+
+    if (error) throw new Error(`Failed to update product: ${error.message}`)
+
+    return { success: true }
+  } catch (err: any) {
+    /* Convert to plain object so Next.js action serialises cleanly */
+    return { success: false, error: err.message ?? "Unknown error" }
   }
-
-  const updates: Record<string, unknown> = {
-    title: formData.get("title"),
-    author: formData.get("author"),
-    price: Number(formData.get("price") as string),
-    category: formData.get("category"),
-    stock: Number(formData.get("stock") as string),
-    description: formData.get("description"),
-    age_range: formData.get("ageRange"),
-    pages: formData.get("pages") ? Number(formData.get("pages") as string) : null,
-    image_url,
-    updated_at: new Date().toISOString(),
-  }
-
-  const { error } = await supabase.from("products").update(updates).eq("id", id)
-
-  if (error) throw new Error(`Failed to update product: ${error.message}`)
-
-  return { success: true }
 }
 
 /**
  * Delete a product and its storage image (if any).
  */
 export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase = createClient() // Changed to server client
+  const supabase: SupabaseClient = createClient() // Changed to server client
 
   if (imageUrl) await deleteImage(imageUrl)
 
@@ -383,7 +401,7 @@ export async function deleteProduct(id: string, imageUrl?: string) {
 /* -------------------------------------------------------------------------- */
 
 export async function signOutUser() {
-  const supabase = createClient()
+  const supabase: SupabaseClient = createClient()
   const { error } = await supabase.auth.signOut()
   if (error) throw new Error(`Failed to sign out user: ${error.message}`)
   return { success: true }
