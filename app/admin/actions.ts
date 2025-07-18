@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants"
 
 import { createClient } from "@/lib/supabase/server" // server-side client
-import { createClient as createBrowserSupabase } from "@/lib/supabase/client" // browser client
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
@@ -186,7 +185,7 @@ export async function getContactMessages() {
 /* -------------------------------------------------------------------------- */
 
 export async function deleteBlogPost(id: string, imageUrl?: string) {
-  const supabase = createClient()
+  const supabase = createClient() // Changed to server client
   if (imageUrl) {
     await deleteImage(imageUrl)
   }
@@ -215,7 +214,7 @@ export async function deleteContactMessage(id: string) {
 /* -------------------------------------------------------------------------- */
 
 async function deleteImage(imageUrl: string | undefined) {
-  const supabase = createBrowserSupabase()
+  const supabase = createClient() // Changed to server client
   if (!imageUrl) return
 
   const urlParts = imageUrl.split("/")
@@ -232,15 +231,11 @@ async function deleteImage(imageUrl: string | undefined) {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               PRODUCTS CRUD                                */
-/* -------------------------------------------------------------------------- */
-
 /**
  * Upload a file to Supabase Storage and return the public URL.
  */
 async function uploadImage(file: File): Promise<string | null> {
-  const supabase = createBrowserSupabase()
+  const supabase = createClient() // Changed to server client
   if (!file || file.size === 0) return null
 
   const extension = file.name.split(".").pop() || "png"
@@ -265,7 +260,7 @@ async function uploadImage(file: File): Promise<string | null> {
  * Create a new product.
  */
 export async function addProduct(formData: FormData) {
-  const supabase = createBrowserSupabase()
+  const supabase = createClient() // Changed to server client
 
   // Required fields
   const title = formData.get("title") as string
@@ -305,7 +300,7 @@ export async function addProduct(formData: FormData) {
  * Fetch all products ordered by newest first.
  */
 export async function getProducts() {
-  const supabase = (await import("@/lib/supabase/client")).createClient()
+  const supabase = createClient() // Changed to server client
 
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
 
@@ -337,7 +332,7 @@ export async function getFirstProduct() {
  * Update an existing product.
  */
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = createBrowserSupabase()
+  const supabase = createClient() // Changed to server client
 
   // Grab current image URL if supplied
   let image_url = (formData.get("currentImageUrl") as string) || null
@@ -373,7 +368,7 @@ export async function updateProduct(id: string, formData: FormData) {
  * Delete a product and its storage image (if any).
  */
 export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase = createBrowserSupabase()
+  const supabase = createClient() // Changed to server client
 
   if (imageUrl) await deleteImage(imageUrl)
 
