@@ -149,7 +149,7 @@ interface Customer {
   shipping_address_line1: string | null
   shipping_city: string | null
   shipping_country: string | null
-  created_at: string
+  created_at: string // aliased from order_date
 }
 
 // Define a type for order data
@@ -178,7 +178,6 @@ const initialState = {
 }
 
 // Dummy data that cannot be made dynamic from current backend
-const siteVisits = 15420
 const returnRequests = 8
 const paymentMethods = [
   { name: "M-Pesa", percentage: 65, transactions: 812 },
@@ -356,6 +355,7 @@ export default function AdminDashboard() {
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0)
   const [topSellingBooks, setTopSellingBooks] = useState<Product[]>([])
   const [monthlySalesData, setMonthlySalesData] = useState<{ month: string; sales: number; orders: number }[]>([])
+  const [siteVisits, setSiteVisits] = useState(0) // State for dynamic site visits
 
   // Fetch user session on component mount
   useEffect(() => {
@@ -376,6 +376,15 @@ export default function AdminDashboard() {
     return () => {
       authListener?.subscription.unsubscribe()
     }
+  }, [])
+
+  // Effect for Site Visits (client-side, non-db)
+  useEffect(() => {
+    const storedVisits = localStorage.getItem("siteVisits")
+    let currentVisits = storedVisits ? Number.parseInt(storedVisits, 10) : 0
+    currentVisits += 1 // Increment on each page load/component mount
+    localStorage.setItem("siteVisits", currentVisits.toString())
+    setSiteVisits(currentVisits)
   }, [])
 
   const fetchProducts = useCallback(async () => {
