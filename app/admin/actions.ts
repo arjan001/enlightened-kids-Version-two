@@ -5,6 +5,17 @@ import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants" // Ensure this import is correct
 import { createClient } from "@/lib/supabase/server" // server-side client
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
+
+/**
+ * Returns a Supabase client that bypasses Row-Level Security.
+ * Uses the service-role key which is safe on the server only.
+ */
+function getAdminClient() {
+  return createAdminClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
@@ -214,7 +225,7 @@ export async function deleteContactMessage(id: string) {
 /* -------------------------------------------------------------------------- */
 
 async function deleteImage(imageUrl: string | undefined) {
-  const supabase: SupabaseClient = createClient()
+  const supabase: SupabaseClient = getAdminClient()
   if (!imageUrl) return
 
   const urlParts = imageUrl.split("/")
@@ -235,7 +246,7 @@ async function deleteImage(imageUrl: string | undefined) {
  * Upload a file to Supabase Storage and return the public URL.
  */
 async function uploadImage(file: File): Promise<string | null> {
-  const supabase: SupabaseClient = createClient()
+  const supabase: SupabaseClient = getAdminClient()
   console.log("[uploadImage] Received file:", file.name, file.size, file.type)
   if (!file || file.size === 0) {
     console.log("[uploadImage] File is null or empty, returning null.")
@@ -284,7 +295,7 @@ async function uploadImage(file: File): Promise<string | null> {
  * Create a new product.
  */
 export async function addProduct(formData: FormData) {
-  const supabase: SupabaseClient = createClient()
+  const supabase: SupabaseClient = getAdminClient()
 
   // Required fields
   const title = formData.get("title") as string
@@ -392,7 +403,7 @@ export async function updateProduct(id: string, formData: FormData) {
     }
     console.log("[updateProduct] Updates object before Supabase call:", updates)
 
-    const supabase: SupabaseClient = createClient()
+    const supabase: SupabaseClient = getAdminClient()
     const { error } = await supabase.from("products").update(updates).eq("id", id)
 
     if (error) {
@@ -413,7 +424,7 @@ export async function updateProduct(id: string, formData: FormData) {
  * Delete a product and its storage image (if any).
  */
 export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase: SupabaseClient = createClient()
+  const supabase: SupabaseClient = getAdminClient()
 
   if (imageUrl) await deleteImage(imageUrl)
 
