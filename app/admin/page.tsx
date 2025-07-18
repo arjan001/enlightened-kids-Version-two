@@ -76,6 +76,7 @@ import {
   Cell,
 } from "recharts"
 import Image from "next/image"
+import { useRouter } from "next/navigation" // Import useRouter
 import {
   addProduct,
   getProducts,
@@ -84,13 +85,16 @@ import {
   signOutUser,
   getCustomers,
   getOrders,
-  getPendingOrdersCount,
   updateOrderStatus, // Import the new action
+  getSiteVisitsCount, // Import the new action for site visits
+  getPendingOrdersCount, // Import the new action to fetch pending orders count
+  getUsersFromDb, // Import the new action to fetch users
 } from "./actions"
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions"
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import type { SupabaseUser } from "./actions" // Import the SupabaseUser type
 
 // Define a type for your product data
 interface Product {
@@ -149,7 +153,7 @@ interface Customer {
   shipping_address_line1: string | null
   shipping_city: string | null
   shipping_country: string | null
-  created_at: string
+  created_at: string // aliased from order_date
 }
 
 // Define a type for order data
@@ -178,50 +182,10 @@ const initialState = {
 }
 
 // Dummy data that cannot be made dynamic from current backend
-const siteVisits = 15420
 const returnRequests = 8
 const paymentMethods = [
   { name: "M-Pesa", percentage: 65, transactions: 812 },
   { name: "PayPal", percentage: 35, transactions: 438 },
-]
-
-const users = [
-  {
-    id: 1,
-    name: "Cheryl Nyakio",
-    email: "cheryl@enlightenedkidsafrica.com",
-    role: "Super Admin",
-    status: "active",
-    lastLogin: "2024-01-15 14:30",
-    permissions: ["all"],
-  },
-  {
-    id: 2,
-    name: "John Manager",
-    email: "john@enlightenedkidsafrica.com",
-    role: "Manager",
-    status: "active",
-    lastLogin: "2024-01-14 10:15",
-    permissions: ["products", "orders", "customers"],
-  },
-  {
-    id: 3,
-    name: "Sarah Editor",
-    email: "sarah@enlightenedkidsafrica.com",
-    role: "Editor",
-    status: "active",
-    lastLogin: "2024-01-13 16:45",
-    permissions: ["blog", "products"],
-  },
-  {
-    id: 4,
-    name: "Mike Support",
-    email: "mike@enlightenedkidsafrica.com",
-    role: "Support",
-    status: "inactive",
-    lastLogin: "2024-01-10 09:20",
-    permissions: ["orders", "customers"],
-  },
 ]
 
 const roles = [
@@ -341,12 +305,17 @@ export default function AdminDashboard() {
   const [loadingOrders, setLoadingOrders] = useState(true) // New state for loading orders
   const [errorOrders, setErrorOrders] = useState<string | null>(null) // New state for orders error
 
+  const [dbUsers, setDbUsers] = useState<SupabaseUser[]>([]) // New state for fetched users
+  const [loadingDbUsers, setLoadingDbUsers] = useState(true) // New state for loading users
+  const [errorDbUsers, setErrorDbUsers] = useState<string | null>(null) // New state for users error
+
   const [user, setUser] = useState<any>(null) // State to hold current user info
 
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null)
+  const router = useRouter() // Initialize useRouter
 
   // New states for dynamic dashboard data
   const [totalSales, setTotalSales] = useState(0)
@@ -356,6 +325,7 @@ export default function AdminDashboard() {
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0)
   const [topSellingBooks, setTopSellingBooks] = useState<Product[]>([])
   const [monthlySalesData, setMonthlySalesData] = useState<{ month: string; sales: number; orders: number }[]>([])
+  const [siteVisits, setSiteVisits] = useState(0) // State for dynamic site visits
 
   // Fetch user session on component mount
   useEffect(() => {
@@ -377,6 +347,19 @@ export default function AdminDashboard() {
       authListener?.subscription.unsubscribe()
     }
   }, [])
+
+  // Effect for Site Visits (client-side, now dynamic from server action)
+  useEffect(() => {
+    const fetchSiteVisits = async () => {
+      try {
+        const visits = await getSiteVisitsCount()
+        setSiteVisits(visits)
+      } catch (error: any) {
+        console.error("Failed to fetch site visits:", error)
+      }
+    }
+    fetchSiteVisits()
+  }, []) // Empty dependency array means it runs once on mount
 
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
@@ -449,6 +432,20 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchDbUsers = useCallback(async () => {
+    setLoadingDbUsers(true)
+    setErrorDbUsers(null)
+    try {
+      const fetchedUsers = await getUsersFromDb()
+      setDbUsers(fetchedUsers)
+    } catch (error: any) {
+      setErrorDbUsers(error.message || "Failed to fetch users")
+      console.error("Failed to fetch users:", error)
+    } finally {
+      setLoadingDbUsers(false)
+    }
+  }, [])
+
   // Fetch pending orders count specifically
   useEffect(() => {
     const fetchPendingCount = async () => {
@@ -469,6 +466,13 @@ export default function AdminDashboard() {
     fetchCustomers() // Fetch customers on component mount
     fetchOrders() // Fetch orders on component mount
   }, [fetchProducts, fetchBlogPosts, fetchContactMessages, fetchCustomers, fetchOrders])
+
+  // Effect to fetch users when the "users" tab is active
+  useEffect(() => {
+    if (activeTab === "users") {
+      fetchDbUsers()
+    }
+  }, [activeTab, fetchDbUsers])
 
   // Effect to calculate dashboard stats and chart data when orders, products, or customers change
   useEffect(() => {
@@ -708,6 +712,7 @@ export default function AdminDashboard() {
         title: "Success",
         description: "You have been logged out.",
       })
+      router.push("/admin/login") // Redirect to login page after successful logout
     } catch (error: any) {
       toast({
         title: "Error",
@@ -2159,70 +2164,81 @@ export default function AdminDashboard() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="min-w-[200px]">User</TableHead>
-                              <TableHead className="min-w-[120px]">Role</TableHead>
-                              <TableHead className="min-w-[100px]">Status</TableHead>
-                              <TableHead className="min-w-[150px]">Last Login</TableHead>
-                              <TableHead className="min-w-[120px]">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {users.map((user) => (
-                              <TableRow key={user.id}>
-                                <TableCell>
-                                  <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                                      <span className="text-white text-sm font-semibold">
-                                        {user.name
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{user.name}</p>
-                                      <p className="text-sm text-gray-500">{user.email}</p>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className="bg-blue-100 text-blue-800">{user.role}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    className={
-                                      user.status === "active"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
-                                    }
-                                  >
-                                    {user.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-sm">{user.lastLogin}</TableCell>
-                                <TableCell>
-                                  <div className="flex space-x-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleEdit("user", user)}>
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDelete("user", user.id.toString(), user.name)}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
+                      {loadingDbUsers && <p>Loading users...</p>}
+                      {errorDbUsers && <p className="text-red-500">Error: {errorDbUsers}</p>}
+                      {!loadingDbUsers && !errorDbUsers && dbUsers.length === 0 && <p>No users found.</p>}
+                      {!loadingDbUsers && !errorDbUsers && dbUsers.length > 0 && (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="min-w-[200px]">User</TableHead>
+                                <TableHead className="min-w-[120px]">Role</TableHead>
+                                <TableHead className="min-w-[100px]">Status</TableHead>
+                                <TableHead className="min-w-[150px]">Last Login</TableHead>
+                                <TableHead className="min-w-[120px]">Actions</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                            </TableHeader>
+                            <TableBody>
+                              {dbUsers.map((user) => (
+                                <TableRow key={user.id}>
+                                  <TableCell>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white text-sm font-semibold">
+                                          {user.user_metadata?.full_name
+                                            ? user.user_metadata.full_name
+                                                .split(" ")
+                                                .map((n: string) => n[0])
+                                                .join("")
+                                            : user.email
+                                              ? user.email[0].toUpperCase()
+                                              : "U"}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium">{user.user_metadata?.full_name || user.email}</p>
+                                        <p className="text-sm text-gray-500">{user.email}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className="bg-blue-100 text-blue-800">{user.role || "User"}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      className={
+                                        user.last_sign_in_at
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-gray-100 text-gray-800"
+                                      }
+                                    >
+                                      {user.last_sign_in_at ? "Active" : "Inactive"}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-sm">
+                                    {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : "N/A"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex space-x-2">
+                                      <Button variant="outline" size="sm" onClick={() => handleEdit("user", user)}>
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDelete("user", user.id, user.email || "Unknown User")}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

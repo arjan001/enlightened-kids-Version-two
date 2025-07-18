@@ -1,14 +1,38 @@
 "use server"
 
+/**
+ * NOTE:
+ * 1. The single `import "@supabase/auth-js"` line makes the optional peer
+ *    dependency visible so the bundler doesn’t complain at runtime.
+ * 2. Everything in this file runs on the server only – it’s safe to use the
+ *    Supabase service-role key here.
+ */
+
+import "@supabase/auth-js"
+
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants"
-import { createClient } from "@/lib/supabase/server" // server-side client
-import type { SupabaseClient } from "@supabase/supabase-js" // Declare SupabaseClient
+import { createClient } from "@/lib/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
+import type { SupabaseClient, User as SupabaseUser } from "@supabase/supabase-js"
+
+/* -------------------------------------------------------------------------- */
+/*                               ADMIN CLIENTS                                */
+/* -------------------------------------------------------------------------- */
+
+function getAdminClient(): SupabaseClient {
+  // Service-role key → bypass RLS (server only)
+  return createAdminClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
 /* -------------------------------------------------------------------------- */
+
+export type { SupabaseUser }
 
 export interface Customer {
   id: string
@@ -18,7 +42,7 @@ export interface Customer {
   shipping_address_line1: string | null
   shipping_city: string | null
   shipping_country: string | null
-  created_at: string // aliased from order_date
+  created_at: string
 }
 
 export interface BlogPost {
@@ -59,13 +83,18 @@ export interface Order {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                DASHBOARD DATA                              */
+/*                               DASHBOARD DATA                               */
 /* -------------------------------------------------------------------------- */
 
-export async function getCustomers() {
-  const supabase: SupabaseClient = createClient()
+export async function getProducts() {
+  const { data, error } = await createClient().from("products").select("*").order("created_at", { ascending: false })
 
-  const { data, error } = await supabase
+  if (error) throw new Error(`Failed to fetch products: ${error.message}`)
+  return data
+}
+
+export async function getCustomers(): Promise<Customer[]> {
+  const { data, error } = await createClient()
     .from("orders")
     .select(
       `
@@ -81,15 +110,11 @@ export async function getCustomers() {
     )
     .order("order_date", { ascending: false })
 
-  if (error) {
-    console.error("Error fetching customers:", error)
-    throw new Error(`Failed to fetch customers: ${error.message}`)
-  }
-
+  if (error) throw new Error(`Failed to fetch customers: ${error.message}`)
   return data as Customer[]
 }
 
-export async function getOrders() {
+export async function getOrders(): Promise<Order[]> {
   const supabase: SupabaseClient = createClient()
 
   const { data, error } = await supabase
@@ -119,9 +144,6 @@ export async function getOrders() {
   return data as Order[]
 }
 
-/**
- * Fetches the count of orders with 'pending' status.
- */
 export async function getPendingOrdersCount(): Promise<number> {
   const supabase: SupabaseClient = createClient()
   const { count, error } = await supabase.from("orders").select("id", { count: "exact" }).eq("status", "pending")
@@ -135,134 +157,45 @@ export async function getPendingOrdersCount(): Promise<number> {
 }
 
 /**
- * Updates the status of an existing order.
- * NOTE: we removed the non-existent updated_at column.
+ * Fetches a dynamic (mock) site visits count.
+ * In a real application, this would fetch from a database or analytics service.
  */
-export async function updateOrderStatus(orderId: string, newStatus: Order["status"]) {
-  const supabase: SupabaseClient = createClient()
-
-  console.log(`[Server Action] Attempting to update order ${orderId} to status: ${newStatus}`)
-
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: newStatus }) // ← ONLY the column that exists
-    .eq("id", orderId)
-
-  if (error) {
-    console.error("[Server Action] Error updating order status:", error)
-    throw new Error(`Failed to update order status: ${error.message}`)
-  }
-
-  console.log(`[Server Action] Successfully updated order ${orderId}. Supabase response data:`, data)
-  revalidatePath("/admin")
-  return { success: true }
-}
-
-export async function getBlogPosts() {
-  const supabase: SupabaseClient = createClient()
-  const { data, error } = await supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
-
-  if (error) {
-    console.error("Error fetching blog posts:", error)
-    throw new Error(`Failed to fetch blog posts: ${error.message}`)
-  }
-  return data as BlogPost[]
-}
-
-export async function getContactMessages() {
-  const supabase: SupabaseClient = createClient()
-  const { data, error } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false })
-
-  if (error) {
-    console.error("Error fetching contact messages:", error)
-    throw new Error(`Failed to fetch contact messages: ${error.message}`)
-  }
-  return data as ContactMessage[]
+export async function getSiteVisitsCount(): Promise<number> {
+  // For demonstration, return a simple dynamic number.
+  // In a real app, you'd fetch this from your database or an analytics service.
+  return Math.floor(Math.random() * 10000) + 5000 // Returns a number between 5000 and 14999
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                BLOG HELPERS                                */
+/*                               ORDER HELPERS                                */
 /* -------------------------------------------------------------------------- */
 
-export async function deleteBlogPost(id: string, imageUrl?: string) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
-  if (imageUrl) {
-    await deleteImage(imageUrl)
-  }
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id)
-  if (error) {
-    console.error("Error deleting blog post:", error)
-    throw new Error(`Failed to delete blog post: ${error.message}`)
-  }
-  revalidatePath("/admin")
-  return { success: true }
-}
+export async function updateOrderStatus(id: string, status: Order["status"]) {
+  const { error } = await createClient().from("orders").update({ status }).eq("id", id)
 
-export async function deleteContactMessage(id: string) {
-  const supabase: SupabaseClient = createClient()
-  const { error } = await supabase.from("contact_messages").delete().eq("id", id)
-  if (error) {
-    console.error("Error deleting contact message:", error)
-    throw new Error(`Failed to delete contact message: ${error.message}`)
-  }
+  if (error) throw new Error(`Failed to update order: ${error.message}`)
+
   revalidatePath("/admin")
   return { success: true }
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              STORAGE HELPERS                               */
+/*                              PRODUCT HELPERS                               */
 /* -------------------------------------------------------------------------- */
 
-async function deleteImage(imageUrl: string | undefined) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
-  if (!imageUrl) return
-
-  const urlParts = imageUrl.split("/")
-  const bucketIndex = urlParts.indexOf(BOOKS_BUCKET_NAME)
-  if (bucketIndex === -1 || bucketIndex + 1 >= urlParts.length) {
-    console.warn("Could not parse image path from URL for deletion:", imageUrl)
-    return
-  }
-  const imagePath = urlParts.slice(bucketIndex + 1).join("/")
-
-  if (imagePath) {
-    const { error } = await supabase.storage.from(BOOKS_BUCKET_NAME).remove([imagePath])
-    if (error) console.warn("Failed to remove old image from storage:", error)
-  }
-}
-
-/**
- * Upload a file to Supabase Storage and return the public URL.
- */
 async function uploadImage(file: File): Promise<string | null> {
-  const supabase: SupabaseClient = createClient()
-  if (!file || file.size === 0) return null
+  const supabase = getAdminClient()
 
-  // 🔒 5 MB safety-limit – edit to taste.
-  const MAX_SIZE = 5 * 1024 * 1024
-  if (file.size > MAX_SIZE) {
-    throw new Error("Image is larger than 5 MB. Please upload a smaller file.")
-  }
+  if (!file || file.size === 0) return null
+  if (file.size > 5 * 1024 * 1024) throw new Error("Image is larger than 5 MB. Please upload a smaller file.")
 
   const extension = file.name.split(".").pop() || "png"
   const filePath = `${randomUUID()}.${extension}`
 
-  try {
-    const { error: uploadError } = await supabase.storage
-      .from(BOOKS_BUCKET_NAME)
-      .upload(filePath, file, { contentType: file.type })
+  const { error } = await supabase.storage.from(BOOKS_BUCKET_NAME).upload(filePath, file, { contentType: file.type })
 
-    if (uploadError) throw uploadError
-  } catch (err: any) {
-    /* Supabase returns plain-text on 413 -> JSON parse fails -> err.message starts with
-       ‘Unexpected token’ – turn that into a friendly message. */
-    if (err.message?.startsWith("Unexpected token")) {
-      throw new Error("Upload failed: file too large (Supabase 413). Try a smaller image.")
-    }
-    throw new Error(`Failed to upload image: ${err.message}`)
-  }
+  if (error) throw error
 
-  // Public URL
   const {
     data: { publicUrl },
   } = supabase.storage.from(BOOKS_BUCKET_NAME).getPublicUrl(filePath)
@@ -270,125 +203,72 @@ async function uploadImage(file: File): Promise<string | null> {
   return publicUrl
 }
 
-/**
- * Create a new product.
- */
+async function deleteImage(imageUrl?: string | null) {
+  if (!imageUrl) return
+  const supabase = getAdminClient()
+
+  const parts = imageUrl.split("/")
+  const i = parts.indexOf(BOOKS_BUCKET_NAME)
+  if (i === -1 || i + 1 >= parts.length) return
+
+  await supabase.storage.from(BOOKS_BUCKET_NAME).remove([parts.slice(i + 1).join("/")])
+}
+
 export async function addProduct(formData: FormData) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
+  const supabase = getAdminClient()
 
-  // Required fields
-  const title = formData.get("title") as string
-  const author = formData.get("author") as string
-  const price = Number(formData.get("price") as string)
-
-  // Optional fields
-  const description = (formData.get("description") as string) || null
-  const category = (formData.get("category") as string) || null
-  const stock = Number((formData.get("stock") as string) || 0)
-  const age_range = (formData.get("ageRange") as string) || null
-  const pages = formData.get("pages") ? Number(formData.get("pages") as string) : null
-
-  // Image (may be empty)
   const imageFile = formData.get("image") as File | null
   const image_url = imageFile ? await uploadImage(imageFile) : null
 
   const { error } = await supabase.from("products").insert({
-    title,
-    author,
-    price,
-    description,
-    category,
-    stock,
-    age_range,
-    pages,
+    title: formData.get("title"),
+    author: formData.get("author"),
+    price: Number(formData.get("price")),
+    description: formData.get("description"),
+    category: formData.get("category"),
+    stock: Number(formData.get("stock") || 0),
+    age_range: formData.get("ageRange"),
+    pages: formData.get("pages") ? Number(formData.get("pages")) : null,
     image_url,
     status: "active",
   })
 
   if (error) throw new Error(`Failed to add product: ${error.message}`)
+  return { success: true }
+}
+
+export async function updateProduct(id: string, formData: FormData) {
+  const supabase = getAdminClient()
+
+  let image_url = formData.get("currentImageUrl") as string | null
+  const newImage = formData.get("image") as File | null
+  if (newImage && newImage.size > 0) {
+    await deleteImage(image_url)
+    image_url = await uploadImage(newImage)
+  }
+
+  const updates = {
+    title: formData.get("title"),
+    author: formData.get("author"),
+    price: Number(formData.get("price")),
+    category: formData.get("category"),
+    stock: Number(formData.get("stock") || 0),
+    description: formData.get("description"),
+    age_range: formData.get("ageRange"),
+    pages: formData.get("pages") ? Number(formData.get("pages")) : null,
+    image_url,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase.from("products").update(updates).eq("id", id)
+  if (error) throw new Error(`Failed to update product: ${error.message}`)
 
   return { success: true }
 }
 
-/**
- * Fetch all products ordered by newest first.
- */
-export async function getProducts() {
-  const supabase: SupabaseClient = createClient() // Changed to server client
-
-  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
-
-  if (error) throw new Error(`Failed to fetch products: ${error.message}`)
-  return data
-}
-
-/**
- * Fetch the very first product in the database
- */
-export async function getFirstProduct() {
-  const supabase: SupabaseClient = createClient()
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .single()
-
-  if (error) {
-    console.error("Error fetching first product:", error)
-    throw new Error(`Failed to fetch first product: ${error.message}`)
-  }
-
-  return data
-}
-
-/**
- * Update an existing product.
- */
-export async function updateProduct(id: string, formData: FormData) {
-  try {
-    // Grab current image URL if supplied
-    let image_url = (formData.get("currentImageUrl") as string) || null
-    const newFile = formData.get("image") as File | null
-
-    // If a new file was provided, upload it and remove the old one
-    if (newFile && newFile.size > 0) {
-      if (image_url) await deleteImage(image_url)
-      image_url = await uploadImage(newFile)
-    }
-
-    const updates: Record<string, unknown> = {
-      title: formData.get("title"),
-      author: formData.get("author"),
-      price: Number(formData.get("price") as string),
-      category: formData.get("category"),
-      stock: Number(formData.get("stock") as string),
-      description: formData.get("description"),
-      age_range: formData.get("ageRange"),
-      pages: formData.get("pages") ? Number(formData.get("pages") as string) : null,
-      image_url,
-      updated_at: new Date().toISOString(),
-    }
-
-    const supabase: SupabaseClient = createClient() // Declare SupabaseClient
-    const { error } = await supabase.from("products").update(updates).eq("id", id)
-
-    if (error) throw new Error(`Failed to update product: ${error.message}`)
-
-    return { success: true }
-  } catch (err: any) {
-    /* Convert to plain object so Next.js action serialises cleanly */
-    return { success: false, error: err.message ?? "Unknown error" }
-  }
-}
-
-/**
- * Delete a product and its storage image (if any).
- */
-export async function deleteProduct(id: string, imageUrl?: string) {
-  const supabase: SupabaseClient = createClient() // Changed to server client
-
-  if (imageUrl) await deleteImage(imageUrl)
+export async function deleteProduct(id: string, imageUrl?: string | null) {
+  const supabase = getAdminClient()
+  await deleteImage(imageUrl)
 
   const { error } = await supabase.from("products").delete().eq("id", id)
   if (error) throw new Error(`Failed to delete product: ${error.message}`)
@@ -397,12 +277,24 @@ export async function deleteProduct(id: string, imageUrl?: string) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                   AUTH                                     */
+/*                                 AUTH HELPERS                               */
 /* -------------------------------------------------------------------------- */
 
 export async function signOutUser() {
-  const supabase: SupabaseClient = createClient()
-  const { error } = await supabase.auth.signOut()
-  if (error) throw new Error(`Failed to sign out user: ${error.message}`)
+  const { error } = await createClient().auth.signOut()
+  if (error) throw new Error(`Failed to sign out: ${error.message}`)
   return { success: true }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             SUPABASE USER LIST                             */
+/* -------------------------------------------------------------------------- */
+
+export async function getUsersFromDb(): Promise<SupabaseUser[]> {
+  const { data, error } = await getAdminClient().auth.admin.listUsers()
+
+  if (error) throw new Error(`Failed to fetch users: ${error.message}`)
+  // Supabase v2 returns `{ users }`
+  // @ts-expect-error  — keep TS quiet across versions
+  return data?.users ?? (data as SupabaseUser[])
 }
