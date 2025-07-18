@@ -500,10 +500,14 @@ export default function HomePage() {
   </a>
 </p>
 
-      <div className="flex gap-4">
-        <Link href="#" className="hover:underline">Privacy Policy</Link>
-        <Link href="#" className="hover:underline">Terms of Service</Link>
-      </div>
+   <div className="flex gap-4">
+          <Link href="/privacy-policy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-and-conditions" className="hover:underline">
+              Terms of Service
+            </Link>
+          </div>
     </div>
   </div>
 </footer>

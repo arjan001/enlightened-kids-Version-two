@@ -93,6 +93,24 @@ export async function getProducts() {
   return data
 }
 
+/**
+ * Returns the very first product in the database.
+ * Used by the public /books page to display the main book.
+ */
+export async function getFirstProduct() {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).limit(1)
+
+  if (error) {
+    console.error("Error fetching first product:", error)
+    throw new Error(`Failed to fetch first product: ${error.message}`)
+  }
+
+  // If there are no products yet, return null so the page can show an error message
+  return data && data.length > 0 ? data[0] : null
+}
+
 export async function getCustomers(): Promise<Customer[]> {
   const { data, error } = await createClient()
     .from("orders")
