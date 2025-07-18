@@ -53,13 +53,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, // Added back for delete confirmation
+  AlertDialogAction, // Added back for delete confirmation
+  AlertDialogCancel, // Added back for delete confirmation
+  AlertDialogContent, // Added back for delete confirmation
+  AlertDialogFooter, // Added back for delete confirmation
+  AlertDialogHeader, // Added back for delete confirmation
+  AlertDialogTitle, // Added back for delete confirmation
 } from "@/components/ui/alert-dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
@@ -573,8 +573,13 @@ export default function AdminDashboard() {
   }
 
   const handleUpdateOrderStatus = async () => {
-    if (!viewingOrder || !selectedOrderStatus) return
+    console.log("[Client] handleUpdateOrderStatus called.")
+    if (!viewingOrder || !selectedOrderStatus) {
+      console.log("[Client] Missing viewingOrder or selectedOrderStatus. Aborting.")
+      return
+    }
 
+    console.log(`[Client] Attempting to update order ${viewingOrder.id} to status: ${selectedOrderStatus}`)
     try {
       await updateOrderStatus(viewingOrder.id, selectedOrderStatus)
       toast({
@@ -583,8 +588,10 @@ export default function AdminDashboard() {
       })
       setIsViewOrderOpen(false)
       setViewingOrder(null)
+      console.log("[Client] Order status updated successfully. Re-fetching orders...")
       fetchOrders() // Re-fetch orders to reflect the change in the table
     } catch (error: any) {
+      console.error("[Client] Error updating order status:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to update order status.",
@@ -1562,8 +1569,7 @@ export default function AdminDashboard() {
                   </TabsTrigger>
                   <TabsTrigger value="general" className="hidden lg:flex">
                     General
-                  </TabsTrigger>
-                </TabsList>
+                  </TabsList>
 
                 <TabsContent value="profile" className="space-y-4">
                   <Card>
@@ -2871,6 +2877,21 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Alert */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* View Contact Message Dialog */}
       <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -2941,21 +2962,6 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Alert */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
-  )
+  )\
 }

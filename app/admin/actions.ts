@@ -142,16 +142,19 @@ export async function getPendingOrdersCount(): Promise<number> {
 export async function updateOrderStatus(orderId: string, newStatus: Order["status"]) {
   const supabase = createClient()
 
-  const { error } = await supabase
+  console.log(`[Server Action] Attempting to update order ${orderId} to status: ${newStatus}`)
+
+  const { data, error } = await supabase
     .from("orders")
     .update({ status: newStatus }) // ← ONLY the column that exists
     .eq("id", orderId)
 
   if (error) {
-    console.error("Error updating order status:", error)
+    console.error("[Server Action] Error updating order status:", error)
     throw new Error(`Failed to update order status: ${error.message}`)
   }
 
+  console.log(`[Server Action] Successfully updated order ${orderId}. Supabase response data:`, data)
   revalidatePath("/admin")
   return { success: true }
 }
