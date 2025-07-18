@@ -1,45 +1,28 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
-import { NextResponse, type NextRequest } from "next/server"
+import { createServerClient } from "@supabase/ssr"
+import type { NextRequest, NextResponse } from "next/server"
 
-export async function createClient(request: NextRequest) {
-  // Create an unmodified response
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+/**
+ * Factory that returns a Supabase client for Next.js middleware.
+ * It keeps cookies in-sync using the getAll / setAll helpers
+ * recommended by Supabase for the App Router.
+ */
+export function createClient(request: NextRequest, response: NextResponse) {
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      // Read ALL cookies that came with the request
+      getAll() {
+        return request.cookies.getAll()
+      },
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the request and response cookie
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          // If the cookie is updated, update the request and response cookie
-          request.cookies.set({ name, value: "", ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: "", ...options })
-        },
+      /**
+       * Write ALL cookies that Supabase wants to set on the response.
+       * We **must** loop and set them individually; do NOT use get / set / remove.
+       */
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
       },
     },
-  )
-
-  return { supabase, response }
+  })
 }

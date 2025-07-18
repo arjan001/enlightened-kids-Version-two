@@ -10,7 +10,7 @@
  * Supabase storage bucket that stores all book-related images.
  * Make sure this matches the bucket name you created in Supabase.
  */
-export const BOOKS_BUCKET_NAME = "books-bucket"
+export const BOOKS_BUCKET_NAME = "books"
 
 /**
  * Default order status assigned right after a successful checkout.
