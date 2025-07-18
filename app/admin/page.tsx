@@ -1569,7 +1569,8 @@ export default function AdminDashboard() {
                   </TabsTrigger>
                   <TabsTrigger value="general" className="hidden lg:flex">
                     General
-                  </TabsList>
+                  </TabsTrigger>
+                </TabsList>
 
                 <TabsContent value="profile" className="space-y-4">
                   <Card>
@@ -2963,5 +2964,5 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
     </div>
-  )\
+  )
 }
