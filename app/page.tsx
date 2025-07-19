@@ -3,14 +3,13 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Heart, Sun, Sparkles, Lock, BookOpen, Award } from "lucide-react"
+import { Star, Lock, BookOpen, Award, Sun } from "lucide-react"
 import Header from "@/components/header"
-import { getPublishedBlogPosts } from "@/app/admin/blog/actions" // Import the new action
-import Footer from "@/components/footer" // Import the Footer component
+import { getPublishedBlogPosts } from "@/app/admin/blog/actions"
+import Footer from "@/components/footer"
 
 export default async function HomePage() {
-  // Make the component async
-  const blogPosts = await getPublishedBlogPosts() // Fetch blog posts
+  const blogPosts = await getPublishedBlogPosts()
 
   return (
     <div className="min-h-screen bg-white pt-16">
@@ -18,22 +17,48 @@ export default async function HomePage() {
 
       {/* Hero Section */}
       <section className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute top-10 left-4 md:left-10">
-          <Sun className="w-12 h-12 md:w-16 md:h-16 text-yellow-400" />
-        </div>
-        <div className="absolute top-20 right-4 md:right-20">
-          <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-orange-400" />
-        </div>
-        <div className="absolute bottom-20 left-4 md:left-20">
-          <Heart className="w-5 h-5 md:w-6 md:h-6 text-red-400" />
-        </div>
-        <div className="absolute bottom-10 right-4 md:right-10">
-          <div className="w-16 h-10 md:w-20 md:h-12 bg-blue-400 rounded-full relative">
-            <div className="absolute -top-3 md:-top-4 left-1/2 transform -translate-x-1/2">
-              <Sun className="w-6 h-6 md:w-8 h-8 text-yellow-400" />
-            </div>
-          </div>
-        </div>
+        {/* Top Left Star */}
+        <Image
+          src="/images/Star1.png"
+          width={40}
+          height={40}
+          className="absolute top-10 left-4 md:left-10 w-10 h-10 md:w-12 md:h-12"
+        />
+        {/* Top Right Large Star */}
+        <Image
+          src="/images/LargeStar.png"
+          width={80}
+          height={80}
+          className="absolute top-20 right-4 md:right-20 w-16 h-16 md:w-20 md:h-20"
+        />
+        {/* Bottom Left Heart */}
+        <Image
+          src="/images/Love.png"
+          width={30}
+          height={30}
+          className="absolute bottom-20 left-4 md:left-20 w-6 h-6 md:w-8 md:h-8"
+        />
+        {/* Bottom Right Sunrise */}
+        <Image
+          src="/images/Sunrise.png"
+          width={100}
+          height={60}
+          className="absolute bottom-10 right-4 md:right-10 w-20 h-12 md:w-24 md:h-16"
+        />
+        {/* Mid-Left Star2 */}
+        <Image
+          src="/images/star2.png"
+          width={30}
+          height={30}
+          className="absolute top-1/3 left-[15%] w-8 h-8 md:w-10 md:h-10"
+        />
+        {/* Mid-Right Leaves */}
+        <Image
+          src="/images/leaves.png"
+          width={80}
+          height={80}
+          className="absolute top-1/2 right-[10%] w-20 h-20 md:w-24 md:h-24"
+        />
 
         <div className="container mx-auto px-4 text-center z-10">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 mb-4 md:mb-6 leading-tight">
@@ -231,21 +256,14 @@ export default async function HomePage() {
             {blogPosts.map((post) => (
               <Card key={post.id} className="overflow-hidden">
                 <div className="relative h-48">
-                  <Image
-                    src={post.image_url || "/placeholder.jpg"} // Use post image or placeholder
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={post.image_url || "/placeholder.jpg"} alt={post.title} fill className="object-cover" />
                   {post.category && (
                     <Badge className="absolute top-4 left-4 bg-orange-500 text-white">{post.category}</Badge>
                   )}
                 </div>
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold text-gray-800 mb-3">{post.title}</h3>
-                  <p className="text-gray-600 mb-4">
-                    {post.content.substring(0, 150)}... {/* Truncate content for preview */}
-                  </p>
+                  <p className="text-gray-600 mb-4">{post.content.substring(0, 150)}...</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">{post.read_time} min read</span>
                     <Link href={`/blog/${post.id}`}>

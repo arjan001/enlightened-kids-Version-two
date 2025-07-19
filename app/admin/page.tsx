@@ -2806,7 +2806,9 @@ export default function AdminDashboard() {
                 <CardContent>
                   {viewingOrder.order_items && viewingOrder.order_items.length > 0 ? (
                     viewingOrder.order_items.map((product, index) => {
+                      // Find the full product details from the 'products' state
                       const productDetails = products.find((p) => p.id === product.product_id)
+                      // Use the actual image_url if available, otherwise fallback to a placeholder
                       const imageUrl = productDetails?.image_url || "/placeholder.svg?height=100&width=80"
                       return (
                         <div
@@ -2814,7 +2816,7 @@ export default function AdminDashboard() {
                           className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
                         >
                           <Image
-                            src={imageUrl || "/placeholder.svg"}
+                            src={imageUrl || "/placeholder.svg"} // Corrected: Use the 'imageUrl' variable here
                             alt={product.title}
                             width={80}
                             height={100}
