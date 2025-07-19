@@ -27,25 +27,25 @@ interface Product {
 const relatedBooks = [
   {
     id: "whispers-of-brave",
-    title: "Whispers of Brave",
+    title: "the boy who followed the wind (and other stories",
     author: "Cheryl Nyakio",
-    price: 2000,
+    price: 1800,
     image: "/placeholder.svg?height=300&width=200",
   },
   {
     id: "i-am-the-question",
-    title: "I Am the Question",
+    title: "Triggered (for teens)",
     author: "Cheryl Nyakio",
-    price: 2000,
+    price: 1500,
     image: "/placeholder.svg?height=300&width=200",
-  },
-  {
-    id: "rooted-like-me",
-    title: "Rooted Like Me",
-    author: "Cheryl Nyakio",
-    price: 2000,
-    image: "/placeholder.svg?height=300&width=200",
-  },
+  }
+  // {
+  //   id: "rooted-like-me",
+  //   title: "Rooted Like Me",
+  //   author: "Cheryl Nyakio",
+  //   price: 2000,
+  //   image: "/placeholder.svg?height=300&width=200",
+  // },
 ]
 
 export default function BooksPage() {
