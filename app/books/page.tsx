@@ -9,7 +9,6 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useCart } from "@/contexts/cart-context"
 import { useState, useEffect } from "react"
-import { getFirstProduct } from "../admin/actions" // Import the new server action
 
 // Define a type for the product data
 interface Product {
@@ -64,11 +63,13 @@ export default function BooksPage() {
     async function fetchMainBook() {
       try {
         setIsLoading(true)
-        // Fetch the first product from the database
-        const data = await getFirstProduct()
-        if (data) {
-          setMainBook(data)
-          setQuantities((prev) => ({ ...prev, [data.id]: 1 })) // Set initial quantity for the fetched book
+        const res = await fetch("/api/products/first")
+        if (!res.ok) throw new Error("Network response was not ok")
+
+        const { product } = await res.json()
+        if (product) {
+          setMainBook(product)
+          setQuantities((prev) => ({ ...prev, [product.id]: 1 }))
         } else {
           setError("No main book found in the database. Please add a product via the admin dashboard.")
         }

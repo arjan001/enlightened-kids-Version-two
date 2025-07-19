@@ -9,7 +9,8 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Enlightened Kids Africa",
   description: "Empowering children through culturally rich stories and educational content",
-    generator: 'v0.dev'
+  generator: "v0.dev",
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 }
 
 export default function RootLayout({
