@@ -147,7 +147,7 @@ export default function BooksPage() {
           <div className="flex flex-col lg:flex-row items-center lg:justify-between gap-8">
             {/* Left Column: Text Content */}
             <div className="lg:w-1/2 text-center lg:text-left text-white">
-              <h1 className="text-2xl font-bold text-orange-400 mb-2">A Powerful Story for Children</h1>
+              <h1 className="text-2xl font-bold text-orange-400 mb-2">Powerful Stories for Children</h1>
               <h2 className="text-3xl font-bold mb-4">to Discover Their Voice</h2>
               <p className="max-w-3xl mx-auto lg:mx-0 text-green-200 leading-relaxed">
                 The world and everything in it is a wonderful experience. The stories in this book invite every child to
