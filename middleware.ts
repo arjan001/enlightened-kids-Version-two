@@ -5,11 +5,9 @@ import { createClient } from "@/lib/supabase/middleware"
  * Global middleware that protects /admin routes.
  */
 export async function middleware(request: NextRequest) {
-  // Create a Next.js response *before* calling Supabase
-  const response = NextResponse.next({ request })
-
   // Initialise Supabase with request/response cookie helpers
-  const supabase = createClient(request, response)
+  // The createClient function returns an object { supabase, response }
+  const { supabase, response } = await createClient(request)
 
   const {
     data: { session },
