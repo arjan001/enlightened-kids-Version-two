@@ -10,12 +10,25 @@
 
 import "@supabase/auth-js"
 
-import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
 import { BOOKS_BUCKET_NAME } from "@/constants"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import type { SupabaseClient, User as SupabaseUser } from "@supabase/supabase-js"
+
+/** ------------------------------------------------------------------
+ * Simple UUID generator (avoids the Node `crypto` module in browsers)
+ * ------------------------------------------------------------------ */
+function generateUUID() {
+  // Use Web Crypto if available (modern browsers & server-side edge)
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID()
+  // Fallback – RFC-4122-ish GUID from Math.random
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === "x" ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
 
 /* -------------------------------------------------------------------------- */
 /*                               ADMIN CLIENTS                                */
@@ -80,6 +93,14 @@ export interface Order {
     quantity: number
     price: number
   }>
+}
+
+export interface DeliveryPrice {
+  id: string
+  location_name: string
+  price: number
+  created_at: string
+  updated_at: string
 }
 
 /* -------------------------------------------------------------------------- */
@@ -208,7 +229,8 @@ async function uploadImage(file: File): Promise<string | null> {
   if (file.size > 5 * 1024 * 1024) throw new Error("Image is larger than 5 MB. Please upload a smaller file.")
 
   const extension = file.name.split(".").pop() || "png"
-  const filePath = `${randomUUID()}.${extension}`
+  // const filePath = `${randomUUID()}.${extension}`
+  const filePath = `${generateUUID()}.${extension}`
 
   const { error } = await supabase.storage.from(BOOKS_BUCKET_NAME).upload(filePath, file, { contentType: file.type })
 
@@ -291,6 +313,54 @@ export async function deleteProduct(id: string, imageUrl?: string | null) {
   const { error } = await supabase.from("products").delete().eq("id", id)
   if (error) throw new Error(`Failed to delete product: ${error.message}`)
 
+  return { success: true }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             DELIVERY PRICING HELPERS                       */
+/* -------------------------------------------------------------------------- */
+
+export async function getDeliveryPrices(): Promise<DeliveryPrice[]> {
+  const { data, error } = await createClient()
+    .from("delivery_pricing")
+    .select("*")
+    .order("location_name", { ascending: true })
+
+  if (error) throw new Error(`Failed to fetch delivery prices: ${error.message}`)
+  return data
+}
+
+export async function addDeliveryPrice(formData: FormData) {
+  const supabase = getAdminClient()
+  const { error } = await supabase.from("delivery_pricing").insert({
+    location_name: formData.get("locationName"),
+    price: Number(formData.get("price")),
+  })
+
+  if (error) throw new Error(`Failed to add delivery price: ${error.message}`)
+  revalidatePath("/admin")
+  return { success: true }
+}
+
+export async function updateDeliveryPrice(id: string, formData: FormData) {
+  const supabase = getAdminClient()
+  const updates = {
+    location_name: formData.get("locationName"),
+    price: Number(formData.get("price")),
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase.from("delivery_pricing").update(updates).eq("id", id)
+  if (error) throw new Error(`Failed to update delivery price: ${error.message}`)
+  revalidatePath("/admin")
+  return { success: true }
+}
+
+export async function deleteDeliveryPrice(id: string) {
+  const supabase = getAdminClient()
+  const { error } = await supabase.from("delivery_pricing").delete().eq("id", id)
+  if (error) throw new Error(`Failed to delete delivery price: ${error.message}`)
+  revalidatePath("/admin")
   return { success: true }
 }
 

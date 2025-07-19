@@ -90,12 +90,16 @@ import {
   getSiteVisitsCount, // Import the new action for site visits
   getPendingOrdersCount, // Import the new action to fetch pending orders count
   getUsersFromDb, // Import the new action to fetch users
+  getDeliveryPrices, // Import new action
+  addDeliveryPrice, // Import new action
+  updateDeliveryPrice, // Import new action
+  deleteDeliveryPrice, // Import new action
 } from "./actions"
 import { addBlogPost, getBlogPosts, updateBlogPost, deleteBlogPost } from "./blog/actions"
 import { getContactMessages, updateContactMessageStatus, deleteContactMessage } from "./contact/actions"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import type { SupabaseUser } from "./actions" // Import the SupabaseUser type
+import type { SupabaseUser, DeliveryPrice as DeliveryPriceType } from "./actions" // Import the SupabaseUser type and new DeliveryPriceType
 
 // Define a type for your product data
 interface Product {
@@ -310,6 +314,13 @@ export default function AdminDashboard() {
   const [loadingDbUsers, setLoadingDbUsers] = useState(true) // New state for loading users
   const [errorDbUsers, setErrorDbUsers] = useState<string | null>(null) // New state for users error
 
+  const [deliveryPrices, setDeliveryPrices] = useState<DeliveryPriceType[]>([]) // New state for delivery prices
+  const [loadingDeliveryPrices, setLoadingDeliveryPrices] = useState(true) // New state for loading delivery prices
+  const [errorDeliveryPrices, setErrorDeliveryPrices] = useState<string | null>(null) // New state for delivery prices error
+  const [isAddDeliveryPriceOpen, setIsAddDeliveryPriceOpen] = useState(false) // New state for add delivery price modal
+  const [isEditDeliveryPriceOpen, setIsEditDeliveryPriceOpen] = useState(false) // New state for edit delivery price modal
+  const [editingDeliveryPrice, setEditingDeliveryPrice] = useState<DeliveryPriceType | null>(null) // New state for editing delivery price
+
   const [user, setUser] = useState<any>(null) // State to hold current user info
 
   const { toast } = useToast()
@@ -447,6 +458,20 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  const fetchDeliveryPrices = useCallback(async () => {
+    setLoadingDeliveryPrices(true)
+    setErrorDeliveryPrices(null)
+    try {
+      const fetchedPrices = await getDeliveryPrices()
+      setDeliveryPrices(fetchedPrices)
+    } catch (error: any) {
+      setErrorDeliveryPrices(error.message || "Failed to fetch delivery prices")
+      console.error("Failed to fetch delivery prices:", error)
+    } finally {
+      setLoadingDeliveryPrices(false)
+    }
+  }, [])
+
   // Fetch pending orders count specifically
   useEffect(() => {
     const fetchPendingCount = async () => {
@@ -474,6 +499,13 @@ export default function AdminDashboard() {
       fetchDbUsers()
     }
   }, [activeTab, fetchDbUsers])
+
+  // Effect to fetch delivery prices when the "delivery-pricing" tab is active
+  useEffect(() => {
+    if (activeTab === "delivery-pricing") {
+      fetchDeliveryPrices()
+    }
+  }, [activeTab, fetchDeliveryPrices])
 
   // Effect to calculate dashboard stats and chart data when orders, products, or customers change
   useEffect(() => {
@@ -563,6 +595,9 @@ export default function AdminDashboard() {
     } else if (type === "role") {
       setEditingRole(item)
       setIsEditRoleOpen(true)
+    } else if (type === "delivery-price") {
+      setEditingDeliveryPrice(item)
+      setIsEditDeliveryPriceOpen(true)
     }
   }
 
@@ -630,6 +665,10 @@ export default function AdminDashboard() {
         await deleteContactMessage(deleteItem.id)
         console.log(`Contact message ${deleteItem.name} deleted successfully.`)
         fetchContactMessages() // Re-fetch contact messages after deletion
+      } else if (deleteItem.type === "delivery-price") {
+        await deleteDeliveryPrice(deleteItem.id)
+        console.log(`Delivery price for ${deleteItem.name} deleted successfully.`)
+        fetchDeliveryPrices() // Re-fetch delivery prices after deletion
       }
       // Add other delete types here (e.g., user, role)
     } catch (error) {
@@ -706,6 +745,51 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleAddDeliveryPriceSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    try {
+      await addDeliveryPrice(formData)
+      setIsAddDeliveryPriceOpen(false)
+      fetchDeliveryPrices()
+      toast({
+        title: "Success",
+        description: "Delivery location added successfully!",
+      })
+    } catch (error: any) {
+      console.error("Failed to add delivery price:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add delivery location.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleUpdateDeliveryPriceSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingDeliveryPrice?.id) return
+
+    const formData = new FormData(event.currentTarget)
+    try {
+      await updateDeliveryPrice(editingDeliveryPrice.id, formData)
+      setIsEditDeliveryPriceOpen(false)
+      setEditingDeliveryPrice(null)
+      fetchDeliveryPrices()
+      toast({
+        title: "Success",
+        description: "Delivery location updated successfully!",
+      })
+    } catch (error: any) {
+      console.error("Failed to update delivery price:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update delivery location.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await signOutUser()
@@ -729,6 +813,7 @@ export default function AdminDashboard() {
     { id: "orders", label: "Orders", icon: Package },
     { id: "customers", label: "Customers", icon: Users },
     { id: "blog", label: "Blog", icon: Edit },
+    { id: "delivery-pricing", label: "Delivery Pricing", icon: MapPin }, // New sidebar item
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "users", label: "User Management", icon: UserPlus },
@@ -1420,6 +1505,109 @@ export default function AdminDashboard() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleDelete("blog", post.id, post.title, post.image_url)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "delivery-pricing" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 className="text-2xl font-bold">Delivery Pricing Management</h2>
+                <Dialog open={isAddDeliveryPriceOpen} onOpenChange={setIsAddDeliveryPriceOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Location
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New Delivery Location</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddDeliveryPriceSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="locationName">Location Name</Label>
+                        <Input id="locationName" name="locationName" placeholder="e.g., Nairobi CBD" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="price">Price (KES)</Label>
+                        <Input id="price" name="price" type="number" step="0.01" placeholder="300" required />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={() => setIsAddDeliveryPriceOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit">Save Location</Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <CardTitle>All Delivery Locations</CardTitle>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input placeholder="Search locations..." className="pl-10 w-full sm:w-64" />
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Filter className="w-4 h-4 mr-2" />
+                        Filter
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingDeliveryPrices && <p>Loading delivery prices...</p>}
+                  {errorDeliveryPrices && <p className="text-red-500">Error: {errorDeliveryPrices}</p>}
+                  {!loadingDeliveryPrices && !errorDeliveryPrices && deliveryPrices.length === 0 && (
+                    <p>No delivery locations found.</p>
+                  )}
+                  {!loadingDeliveryPrices && !errorDeliveryPrices && deliveryPrices.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[200px]">Location Name</TableHead>
+                            <TableHead className="min-w-[120px]">Price</TableHead>
+                            <TableHead className="min-w-[150px]">Last Updated</TableHead>
+                            <TableHead className="min-w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {deliveryPrices.map((location) => (
+                            <TableRow key={location.id}>
+                              <TableCell className="font-medium">{location.location_name}</TableCell>
+                              <TableCell>{formatPrice(location.price)}</TableCell>
+                              <TableCell>{new Date(location.updated_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEdit("delivery-price", location)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDelete("delivery-price", location.id, location.location_name)}
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -2700,6 +2888,47 @@ export default function AdminDashboard() {
                   Cancel
                 </Button>
                 <Button type="submit">Update Post</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Delivery Price Modal */}
+      <Dialog open={isEditDeliveryPriceOpen} onOpenChange={setIsEditDeliveryPriceOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Delivery Location</DialogTitle>
+          </DialogHeader>
+          {editingDeliveryPrice && (
+            <form onSubmit={handleUpdateDeliveryPriceSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="editLocationName">Location Name</Label>
+                <Input
+                  id="editLocationName"
+                  name="locationName"
+                  placeholder="e.g., Nairobi CBD"
+                  defaultValue={editingDeliveryPrice.location_name}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPrice">Price (KES)</Label>
+                <Input
+                  id="editPrice"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  placeholder="300"
+                  defaultValue={editingDeliveryPrice.price}
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditDeliveryPriceOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Update Location</Button>
               </div>
             </form>
           )}
