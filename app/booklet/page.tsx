@@ -20,7 +20,7 @@ export default function BookletPage() {
           backgroundPosition: "center",
         }}
       >
-        <Card className="w-full max-w-2xl mx-auto p-8 md:p-12 bg-white shadow-lg rounded-lg text-center">
+        <Card className="w-full max-w-2xl mx-auto p-8 mt-8 md:p-12 bg-white shadow-lg rounded-lg text-center">
           <CardContent className="flex flex-col items-center justify-center gap-6 p-0">
             <h1 className="text-3xl md:text-4xl font-bold text-green-800 mb-2">Access Your Booklet</h1>
             <p className="text-lg text-gray-700 mb-4 leading-relaxed">
