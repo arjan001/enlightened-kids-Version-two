@@ -14,12 +14,12 @@ export default function AboutPage() {
       <section className="bg-green-800 py-15">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-12 max-w-6xl mx-auto">
-            
             <div className="lg:w-1/2 order-2 lg:order-2">
               <h1 className="text-4xl md:text-5xl font-bold text-orange-400 mb-6">About Nyakio</h1>
               <p className="text-green-200 mb-6 leading-relaxed text-lg">
-                A conscious storyteller, devoted mother, and passionate advocate for children's empowerment. CherylNyakio uses her voice to craft culturally rich narratives that honor African identity, nurture emotional
-                intelligence, and inspire young readers to embrace their inner wisdom.
+                A conscious storyteller, devoted mother, and passionate advocate for children's empowerment.
+                CherylNyakio uses her voice to craft culturally rich narratives that honor African identity, nurture
+                emotional intelligence, and inspire young readers to embrace their inner wisdom.
               </p>
               <p className="text-green-200 leading-relaxed">
                 Through her stories, she celebrates the boldness of self-expression, the beauty of self-discovery, and
@@ -27,16 +27,17 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <div className="lg:w-1/2 order-1 lg:order-1">
+            <div className="lg:w-1/2 order-1 lg:order-1 pt-8">
+              {" "}
+              {/* Added pt-8 for top padding */}
               <Image
-                src="/Nyakio Cheryl Homepage.png?height=500&width=400"
+                src="/Nyakio Cheryl Homepage.png?height=400&width=300" // Adjusted height and width
                 alt="Cheryl Nyakio"
-                width={500}
-                height={400}
-                className="rounded-lg "
+                width={400} // Adjusted width
+                height={300} // Adjusted height
+                className="rounded-lg mx-auto" // Added mx-auto to center the image
               />
             </div>
-
           </div>
         </div>
       </section>
@@ -69,52 +70,52 @@ export default function AboutPage() {
         </div>
       </section>
 
-{/* Mission & Values */}
-<section className="py-20 bg-orange-50">
-    <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
+      {/* Mission & Values */}
+      <section className="py-20 bg-orange-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Mission & Values</h2>
-        </div>
+          </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
             {/* Card 1 */}
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Heart className="w-8 h-8 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">Self Awareness</h3>
-                <p className="text-gray-600 text-sm">Helping children understand and embrace their unique gifts</p>
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="w-8 h-8 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Self Awareness</h3>
+              <p className="text-gray-600 text-sm">Helping children understand and embrace their unique gifts</p>
             </div>
 
             {/* Card 2 */}
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="w-8 h-8 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">Cultural Pride</h3>
-                <p className="text-gray-600 text-sm">Celebrating heritage and identity through storytelling</p>
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Cultural Pride</h3>
+              <p className="text-gray-600 text-sm">Celebrating heritage and identity through storytelling</p>
             </div>
 
             {/* Card 3 */}
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Lightbulb className="w-8 h-8 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">Emotional Growth</h3>
-                <p className="text-gray-600 text-sm">Nurturing emotional intelligence and resilience</p>
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lightbulb className="w-8 h-8 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Emotional Growth</h3>
+              <p className="text-gray-600 text-sm">Nurturing emotional intelligence and resilience</p>
             </div>
 
             {/* Card 4 */}
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Award className="w-8 h-8 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">Empowerment</h3>
-                <p className="text-gray-600 text-sm">Inspiring children to see themselves as heroes</p>
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Award className="w-8 h-8 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Empowerment</h3>
+              <p className="text-gray-600 text-sm">Inspiring children to see themselves as heroes</p>
             </div>
+          </div>
         </div>
-    </div>
-</section>
+      </section>
 
       {/* Ready to Begin */}
       <section className="py-20 bg-white">
