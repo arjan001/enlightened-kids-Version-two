@@ -38,14 +38,14 @@ const relatedBooks = [
     author: "Cheryl Nyakio",
     price: 1500,
     image: "/placeholder.svg?height=300&width=200",
-  }
-  // {
-  //   id: "rooted-like-me",
-  //   title: "Rooted Like Me",
-  //   author: "Cheryl Nyakio",
-  //   price: 2000,
-  //   image: "/placeholder.svg?height=300&width=200",
-  // },
+  },
+  {
+    id: "rooted-like-me",
+    title: "Rooted Like Me",
+    author: "Cheryl Nyakio",
+    price: 2000,
+    image: "/placeholder.svg?height=300&width=200",
+  },
 ]
 
 export default function BooksPage() {
