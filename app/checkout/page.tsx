@@ -1,29 +1,36 @@
 "use client"
 
 import type React from "react"
+import { createClient } from "@/lib/supabase/client" // Declare the createClient variable
 
-import { useState, useEffect, useMemo, useTransition } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useCart } from "@/contexts/cart-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/contexts/cart-context"
+import { toast } from "@/components/ui/use-toast"
+import { processCheckout } from "./actions"
+import { PaymentModal } from "@/components/payment-modal" // Correct import
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
-import { useToast } from "@/components/ui/use-toast"
-import { processCheckout } from "@/app/checkout/actions"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Loader2, Minus, Plus, Trash2 } from "lucide-react"
+
+interface DeliveryPricing {
+  id: string
+  location_name: string // Changed to match database column
+  price: number
+}
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart() // Correctly destructure state
   const cartItems = state.items // Access cart items from state.items
-  const { toast } = useToast()
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -33,8 +40,13 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("")
   const [postalCode, setPostalCode] = useState("")
   const [orderNotes, setOrderNotes] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState("mpesa")
+  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "paypal">("mpesa")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+
+  const [deliveryLocations, setDeliveryLocations] = useState<DeliveryPricing[]>([])
+  const [selectedDeliveryPriceId, setSelectedDeliveryPriceId] = useState<string | null>(null)
+  const [loadingDeliveryPrices, setLoadingDeliveryPrices] = useState(true)
 
   useEffect(() => {
     const savedFirstName = localStorage.getItem("firstName")
@@ -46,6 +58,7 @@ export default function CheckoutPage() {
     const savedPostalCode = localStorage.getItem("postalCode")
     const savedOrderNotes = localStorage.getItem("orderNotes")
     const savedPaymentMethod = localStorage.getItem("paymentMethod")
+    const savedSelectedDeliveryPriceId = localStorage.getItem("selectedDeliveryPriceId")
 
     if (savedFirstName) setFirstName(savedFirstName)
     if (savedLastName) setLastName(savedLastName)
@@ -55,7 +68,8 @@ export default function CheckoutPage() {
     if (savedCity) setCity(savedCity)
     if (savedPostalCode) setPostalCode(savedPostalCode)
     if (savedOrderNotes) setOrderNotes(savedOrderNotes)
-    if (savedPaymentMethod) setPaymentMethod(savedPaymentMethod)
+    if (savedPaymentMethod) setPaymentMethod(savedPaymentMethod as "mpesa" | "paypal")
+    if (savedSelectedDeliveryPriceId) setSelectedDeliveryPriceId(savedSelectedDeliveryPriceId)
   }, [])
 
   useEffect(() => {
@@ -68,9 +82,63 @@ export default function CheckoutPage() {
     localStorage.setItem("postalCode", postalCode)
     localStorage.setItem("orderNotes", orderNotes)
     localStorage.setItem("paymentMethod", paymentMethod)
-  }, [firstName, lastName, email, phone, streetAddress, city, postalCode, orderNotes, paymentMethod])
+    if (selectedDeliveryPriceId) {
+      localStorage.setItem("selectedDeliveryPriceId", selectedDeliveryPriceId)
+    } else {
+      localStorage.removeItem("selectedDeliveryPriceId")
+    }
+  }, [
+    firstName,
+    lastName,
+    email,
+    phone,
+    streetAddress,
+    city,
+    postalCode,
+    orderNotes,
+    paymentMethod,
+    selectedDeliveryPriceId,
+  ])
 
-  const shippingCost = 200 // Example fixed shipping cost
+  // Fetch delivery prices
+  useEffect(() => {
+    const fetchDeliveryPrices = async () => {
+      setLoadingDeliveryPrices(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("delivery_pricing")
+        .select("*")
+        .order("location_name", { ascending: true })
+
+      if (error) {
+        console.error("Error fetching delivery prices:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load delivery options. Please try again.",
+          variant: "destructive",
+        })
+      } else {
+        setDeliveryLocations(data || [])
+        // Set default selected price if not already set or if the saved one is no longer valid
+        if (
+          data &&
+          data.length > 0 &&
+          (!selectedDeliveryPriceId || !data.some((loc) => loc.id === selectedDeliveryPriceId))
+        ) {
+          setSelectedDeliveryPriceId(data[0].id)
+        } else if (data && data.length === 0) {
+          setSelectedDeliveryPriceId(null)
+        }
+      }
+      setLoadingDeliveryPrices(false)
+    }
+    fetchDeliveryPrices()
+  }, []) // Run once on mount
+
+  const shippingCost = useMemo(() => {
+    const selectedLocation = deliveryLocations.find((loc) => loc.id === selectedDeliveryPriceId)
+    return selectedLocation ? selectedLocation.price : 0
+  }, [deliveryLocations, selectedDeliveryPriceId])
 
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -88,10 +156,8 @@ export default function CheckoutPage() {
     dispatch({ type: "REMOVE_FROM_CART", payload: id })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleFinalizeOrder = async () => {
     setIsProcessing(true)
-
     const customerData = {
       first_name: firstName,
       last_name: lastName,
@@ -103,7 +169,7 @@ export default function CheckoutPage() {
     }
 
     const orderData = {
-      cartItems: cartItems, // Use the correctly destructured cartItems
+      cartItems: cartItems,
       totalAmount,
       shippingCost,
       paymentMethod,
@@ -128,6 +194,7 @@ export default function CheckoutPage() {
       localStorage.removeItem("postalCode")
       localStorage.removeItem("orderNotes")
       localStorage.removeItem("paymentMethod")
+      localStorage.removeItem("selectedDeliveryPriceId")
       router.push("/booklet")
     } else {
       toast({
@@ -137,6 +204,40 @@ export default function CheckoutPage() {
       })
     }
     setIsProcessing(false)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (cartItems.length === 0) {
+      toast({
+        title: "Cart Empty",
+        description: "Please add items to your cart before checking out.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!firstName || !lastName || !email || !phone || !streetAddress || !city || !postalCode) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required contact and delivery details.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!selectedDeliveryPriceId) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a delivery location.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Open the payment modal
+    setShowPaymentModal(true)
   }
 
   return (
@@ -200,7 +301,32 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Shipping</span>
-                      <span className="font-medium">Ksh {shippingCost.toLocaleString()}</span>
+                      {loadingDeliveryPrices ? (
+                        <span className="text-gray-500">Loading...</span>
+                      ) : (
+                        <Select
+                          value={selectedDeliveryPriceId || ""}
+                          onValueChange={setSelectedDeliveryPriceId}
+                          disabled={deliveryLocations.length === 0}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {deliveryLocations.length === 0 ? (
+                              <SelectItem value="no-locations" disabled>
+                                No delivery locations available
+                              </SelectItem>
+                            ) : (
+                              deliveryLocations.map((location) => (
+                                <SelectItem key={location.id} value={location.id}>
+                                  {location.location_name} (Ksh {location.price.toLocaleString()})
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                     <Separator className="my-2" />
                     <div className="flex items-center justify-between text-lg font-bold">
@@ -262,7 +388,11 @@ export default function CheckoutPage() {
                   </div>
                 </Label>
               </RadioGroup>
-              <Button type="submit" className="w-full mt-6" disabled={isProcessing || cartItems.length === 0}>
+              <Button
+                type="submit"
+                className="w-full mt-6"
+                disabled={isProcessing || cartItems.length === 0 || !selectedDeliveryPriceId}
+              >
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -385,6 +515,16 @@ export default function CheckoutPage() {
           </Card>
         </div>
       </form>
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false)
+          setIsProcessing(false) // Reset processing state if modal is closed without completing
+        }}
+        paymentMethod={paymentMethod}
+        totalAmount={totalAmount}
+        onPaymentSuccess={handleFinalizeOrder}
+      />
     </div>
   )
 }

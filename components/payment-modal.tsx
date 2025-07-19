@@ -1,145 +1,74 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, X } from "lucide-react"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { useCart } from "@/contexts/cart-context"
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
 
 interface PaymentModalProps {
   isOpen: boolean
   onClose: () => void
-  paymentMethod: "mpesa" | "paypal" | null
+  paymentMethod: "mpesa" | "paypal"
   totalAmount: number
+  onPaymentSuccess: () => void
 }
 
-export function PaymentModal({ isOpen, onClose, paymentMethod, totalAmount }: PaymentModalProps) {
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [email, setEmail] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const router = useRouter()
-  const { dispatch } = useCart() // Only need dispatch to clear cart
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: "KES",
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
-
-  const handlePayment = async () => {
-    setIsProcessing(true)
-
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    setIsProcessing(false)
-    onClose()
-    dispatch({ type: "CLEAR_CART" }) // Clear cart after successful payment simulation
-    router.push("/booklet") // Redirect to a confirmation page or booklet
-  }
-
-  const handleClose = () => {
-    if (!isProcessing) {
-      onClose()
-      setPhoneNumber("")
-      setEmail("")
-    }
-  }
-
+export function PaymentModal({ isOpen, onClose, paymentMethod, totalAmount, onPaymentSuccess }: PaymentModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Complete Payment</span>
-            {!isProcessing && (
-              <Button variant="ghost" size="sm" onClick={handleClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            )}
-          </DialogTitle>
-        </DialogHeader>
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      {/* Dummy trigger just to satisfy the component API */}
+      <AlertDialogTrigger asChild></AlertDialogTrigger>
 
-        <div className="space-y-6">
-          {/* Payment Method Header */}
-          <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg">
-            {paymentMethod === "mpesa" ? (
-              <>
-                <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={120} height={40} className="object-contain" />
-              </>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-blue-600">PayPal</div>
-              </>
-            )}
-          </div>
+      <AlertDialogContent className="max-w-sm sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-center">
+            {paymentMethod === "mpesa" ? "M-Pesa Payment" : "PayPal Payment"}
+          </AlertDialogTitle>
+        </AlertDialogHeader>
 
-          {/* Amount Display */}
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-gray-600">Total Amount</p>
-            <p className="text-2xl font-bold text-green-600">{formatPrice(totalAmount)}</p>
-          </div>
-
-          {/* Payment Form */}
+        {paymentMethod === "mpesa" ? (
           <div className="space-y-4">
-            {paymentMethod === "mpesa" ? (
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="254712345678"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={isProcessing}
-                />
-                <p className="text-xs text-gray-500">Enter your M-Pesa registered phone number</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="email">PayPal Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isProcessing}
-                />
-                <p className="text-xs text-gray-500">Enter your PayPal registered email address</p>
-              </div>
-            )}
+            {/* M-Pesa instructions image */}
+            <Image
+              src="/images/lipa-na-mpesa-till.jpg"
+              alt="Lipa Na M-Pesa Till Number"
+              width={500}
+              height={300}
+              className="mx-auto rounded-md"
+            />
+
+            {/* Amount to pay */}
+            <p className="text-center text-lg font-semibold">
+              Total Payable: <span className="text-green-700">Ksh {totalAmount.toLocaleString()}</span>
+            </p>
+
+            <p className="text-sm text-muted-foreground text-center">
+              Use the above Till Number to complete the payment in your M-Pesa app, then click “Confirm Payment”.
+            </p>
           </div>
+        ) : (
+          <p className="text-center">A PayPal flow will be implemented later. Please click “Confirm” to continue.</p>
+        )}
 
-          {/* Payment Button */}
-          <Button
-            onClick={handlePayment}
-            disabled={isProcessing || (paymentMethod === "mpesa" ? !phoneNumber : !email)}
-            className="w-full bg-green-600 hover:bg-green-700"
+        <AlertDialogFooter className="mt-6">
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              onPaymentSuccess()
+              onClose()
+            }}
           >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing Payment...
-              </>
-            ) : (
-              `Pay ${formatPrice(totalAmount)}`
-            )}
-          </Button>
-
-          {isProcessing && (
-            <div className="text-center text-sm text-gray-600">
-              {paymentMethod === "mpesa" ? "Please check your phone for M-Pesa prompt..." : "Redirecting to PayPal..."}
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            Confirm Payment
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
