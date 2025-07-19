@@ -38,8 +38,6 @@ export default function LoginPage() {
         title: "Success",
         description: "Logged in successfully!",
       })
-      // Force a refresh to ensure middleware re-evaluates the session
-      router.refresh() // [^vercel_knowledge_base]
       router.push("/admin")
     }
     setLoading(false)

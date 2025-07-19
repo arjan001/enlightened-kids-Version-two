@@ -95,7 +95,7 @@ export default async function HomePage() {
             <p className="text-green-200">Love that enlightens children and young adults</p>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center gap-12 max-w-6xl mx-auto">
             <div className="lg:w-1/2">
               <div className="relative">
                 <Image
