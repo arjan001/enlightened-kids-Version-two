@@ -12,6 +12,7 @@ import {
   Users,
   BookOpen,
   DollarSign,
+  Banknote,
   TrendingUp,
   Eye,
   RefreshCw,
@@ -886,7 +887,7 @@ export default function AdminDashboard() {
                           {formatPrice(totalSales)}
                         </p>
                       </div>
-                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
+                      <Banknote className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
                     </div>
                     <div className="flex items-center mt-2 text-xs">
                       <ArrowUp className="w-3 h-3 text-green-500 mr-1" />

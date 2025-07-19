@@ -27,16 +27,16 @@ interface Product {
 const relatedBooks = [
   {
     id: "whispers-of-brave",
-    title: "the boy who followed the wind (and other stories",
+    title: "Whispers of Brave",
     author: "Cheryl Nyakio",
-    price: 1800,
+    price: 2000,
     image: "/placeholder.svg?height=300&width=200",
   },
   {
     id: "i-am-the-question",
-    title: "Triggered (for teens)",
+    title: "I Am the Question",
     author: "Cheryl Nyakio",
-    price: 1500,
+    price: 2000,
     image: "/placeholder.svg?height=300&width=200",
   },
   {

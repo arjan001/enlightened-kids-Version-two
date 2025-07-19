@@ -15,41 +15,25 @@ export default function Header() {
     <>
       <header className="border-b bg-white fixed top-0 left-0 right-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img
-              src="/Enlightened Kids Africa Logo Horizontal - Color.svg" // Replace with actual path to your logo
-              alt="Enlightened Kids Africa"
-              className="h-20 w-auto"
-            />
-            {/* <span className="font-semibold text-gray-800 text-sm md:text-base">
+        <Link href="/" className="flex items-center gap-2">
+    <img
+      src="/Enlightened Kids Africa Logo Horizontal - Color.svg" // Replace with actual path to your logo
+      alt="Enlightened Kids Africa"
+      className="h-20 w-auto"
+    />
+    {/* <span className="font-semibold text-gray-800 text-sm md:text-base">
       Enlightened Kids Africa
     </span> */}
-          </Link>
+  </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-            <Link
-              href="/books"
-              className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors"
-            >
-              Books
-            </Link>
-            <Link
-              href="/about"
-              className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors"
-            >
-              About
-            </Link>
-            <Link href="/blog" className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors">
-              Blog
-            </Link>
-            <Link
-              href="/contact"
-              className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors"
-            >
-              Contact
-            </Link>
-          </nav>
+  <Link href="/books" className="text-gray-700 hover:text-orange-500 font-bold transition-colors">Books</Link>
+  <Link href="/about" className="text-gray-700 hover:text-orange-500 font-bold transition-colors">About</Link>
+  <Link href="/blog" className="text-gray-700 hover:text-orange-500 font-bold transition-colors">Blog</Link>
+  <Link href="/contact" className="text-gray-700 hover:text-orange-500 font-bold transition-colors">Contact</Link>
+</nav>
+
 
           <div className="flex items-center gap-3 md:gap-4">
             <Search
@@ -78,28 +62,28 @@ export default function Header() {
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
               <Link
                 href="/books"
-                className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors py-2"
+                className="text-gray-700 hover:text-orange-500 transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Books
               </Link>
               <Link
                 href="/about"
-                className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors py-2"
+                className="text-gray-700 hover:text-orange-500 transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="/blog"
-                className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors py-2"
+                className="text-gray-700 hover:text-orange-500 transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Blog
               </Link>
               <Link
                 href="/contact"
-                className="text-gray-700 hover:text-orange-500 font-bold font-fredoka transition-colors py-2"
+                className="text-gray-700 hover:text-orange-500 transition-colors py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Contact
