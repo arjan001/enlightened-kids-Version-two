@@ -87,6 +87,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-quicksand); /* Default to Quicksand */
+    padding-top: 80px; /* Add padding to account for fixed header (h-20 = 80px) */
   }
   h1,
   h2,

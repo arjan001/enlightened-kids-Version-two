@@ -39,7 +39,7 @@ export default function RootLayout({
         <CartProvider>
           <div className="min-h-screen flex flex-col">
             <Header />
-            <main className="flex-grow mt-20">{children}</main> {/* Added mt-20 for fixed header */}
+            <main className="flex-grow">{children}</main> {/* Removed mt-20 */}
             <Footer />
           </div>
         </CartProvider>
