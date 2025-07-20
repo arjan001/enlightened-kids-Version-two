@@ -9,7 +9,7 @@ import SearchModal from "./search-modal"
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const { state } = useCart() // <- same provider instance
+  const { state } = useCart()
 
   return (
     <>
@@ -17,7 +17,7 @@ export default function Header() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img
-              src="/Enlightened Kids Africa Logo Horizontal - Color.svg"
+              src="/Enlightened Kids Africa Logo Horizontal - Color.svg" // Replace with actual path to your logo
               alt="Enlightened Kids Africa"
               className="h-20 w-auto"
             />
@@ -54,7 +54,7 @@ export default function Header() {
             </Link>
 
             {/* Mobile Menu Button */}
-            <button className="md:hidden p-2" onClick={() => setIsMenuOpen((p) => !p)}>
+            <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
           </div>

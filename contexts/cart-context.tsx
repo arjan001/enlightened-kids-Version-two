@@ -63,7 +63,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         .map((item) =>
           item.id === action.payload.id ? { ...item, quantity: Math.max(0, action.payload.quantity) } : item,
         )
-        .filter((item) => item.quantity > 0) // remove quantity-0 items
+        .filter((item) => item.quantity > 0) // Filter out items with quantity 0
 
       const total = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
       const itemCount = newItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -85,19 +85,21 @@ const CartContext = createContext<{
 } | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  // Initialize state from localStorage or use initialState
   const [state, dispatch] = useReducer(cartReducer, initialState, (init) => {
     if (typeof window !== "undefined") {
       try {
         const storedCart = localStorage.getItem("enlightenedKidsCart")
         return storedCart ? JSON.parse(storedCart) : init
-      } catch {
+      } catch (error) {
+        console.error("Failed to parse stored cart from localStorage:", error)
         return init
       }
     }
     return init
   })
 
-  // persist cart
+  // Persist state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("enlightenedKidsCart", JSON.stringify(state))

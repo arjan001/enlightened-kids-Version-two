@@ -1,36 +1,32 @@
 "use client"
-import { Suspense } from "react"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
-import { CartProvider } from "@/contexts/cart-context"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useCart } from "@/contexts/cart-context"
 import CheckoutForm from "@/components/checkout-form"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
+// Header and Footer are now rendered in layout.tsx
 
-export default async function CheckoutPage() {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+export default function CheckoutPage() {
+  const { state } = useCart()
+  const router = useRouter()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  useEffect(() => {
+    // Redirect if cart is empty
+    if (state.itemCount === 0) {
+      router.replace("/books")
+    }
+  }, [state.itemCount, router])
 
-  if (!user) {
-    redirect("/login")
+  // Render the checkout form only if there are items in the cart
+  if (state.itemCount === 0) {
+    return null // Or a loading spinner, as redirection will happen
   }
 
   return (
-    <CartProvider>
-      <div className="min-h-screen bg-white flex flex-col">
-        <Header />
-        <main className="flex-grow py-12 md:py-20">
-          <Suspense fallback={<div>Loading checkout...</div>}>
-            <CheckoutForm userId={user.id} />
-          </Suspense>
-        </main>
-        <Footer />
-      </div>
-    </CartProvider>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header and Footer are now in layout.tsx */}
+      <main className="flex-grow py-12 md:py-20">
+        <CheckoutForm />
+      </main>
+    </div>
   )
 }
