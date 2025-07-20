@@ -1,44 +1,57 @@
-import Image from "next/image"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import Header from "@/components/header"
+import Footer from "@/components/footer"
+import Link from "next/link"
+import { LinkIcon, PhoneIcon as Whatsapp } from "lucide-react" // Renamed Link to LinkIcon to avoid conflict with next/link
 
 export default function BookletPage() {
   return (
-    <main className="flex flex-col items-center justify-center p-4 md:p-6">
-      <Card className="w-full max-w-4xl">
-        <CardContent className="flex flex-col md:flex-row items-center gap-6 p-6">
-          <div className="relative w-full md:w-1/2 aspect-[3/4] rounded-lg overflow-hidden">
-            <Image
-              src="/images/booklet.png"
-              alt="Discussion & Activity Guide"
-              layout="fill"
-              objectFit="cover"
-              className="rounded-lg"
-            />
-          </div>
-          <div className="flex flex-col gap-4 w-full md:w-1/2">
-            <h1 className="text-3xl font-bold text-center md:text-left">Discussion & Activity Guide</h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 text-center md:text-left">
-              Enhance your reading experience with our comprehensive Discussion & Activity Guide. This guide is designed
-              to deepen understanding and facilitate meaningful conversations around the themes in "Colours of Me."
+    <div className="min-h-screen bg-white flex flex-col">
+      <Header />
+
+      {/* Main Content Section */}
+      <main
+        className="flex-grow py-12 md:py-20 flex justify-center"
+        style={{
+          backgroundImage: `url('/Enlightened Kids Pattern BG.png')`,
+          backgroundSize: "cover",
+          backgroundRepeat: "repeat",
+          backgroundPosition: "center",
+        }}
+      >
+        <Card className="w-full max-w-2xl mx-auto p-8 mt-8 md:p-12 bg-white shadow-lg rounded-lg text-center">
+          <CardContent className="flex flex-col items-center justify-center gap-6 p-0">
+            <h1 className="text-3xl md:text-4xl font-bold text-green-800 mb-2">Access Your Booklet</h1>
+            <p className="text-lg text-gray-700 mb-4 leading-relaxed">
+              Every purchase of Colours of Me comes with a free Discussion & Activity e-Booklet
             </p>
-            <ul className="list-disc list-inside text-gray-700 dark:text-gray-300 space-y-2">
-              <li>Thought-provoking questions for each story</li>
-              <li>Engaging activities for children and parents/educators</li>
-              <li>Key lessons highlighted for deeper understanding</li>
-              <li>Designed to be accessible and easy to use</li>
-            </ul>
-            <div className="flex justify-center md:justify-start">
-              <Link href="/ebook/discussion-activity-guide.pdf" passHref legacyBehavior>
-                <Button asChild size="lg" className="w-full md:w-auto">
-                  <a download>Download Instantly</a>
-                </Button>
-              </Link>
+            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+              <Button
+                asChild
+                className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 text-lg rounded-lg shadow-md flex-1 sm:flex-none"
+              >
+                <Link href="/ebook/discussion-activity-guide.pdf" download="Discussion & Activity Guide.pdf">
+                  <LinkIcon className="w-5 h-5 mr-2" />
+                  Download Instantly
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 py-3 px-6 text-lg rounded-lg shadow-md flex-1 sm:flex-none"
+              >
+                <Link href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
+                  <Whatsapp className="w-5 h-5 mr-2" />
+                  Request Via Whatsapp
+                </Link>
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+          </CardContent>
+        </Card>
+      </main>
+
+      <Footer />
+    </div>
   )
 }
