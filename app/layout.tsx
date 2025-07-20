@@ -1,11 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Fredoka, Quicksand } from "next/font/google" // Import Fredoka and Quicksand
+import { Fredoka, Quicksand } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/contexts/cart-context"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-import { Toaster } from "@/components/ui/sonner"
 
 // Configure Fredoka for primary font (semibold)
 const fredoka = Fredoka({
@@ -36,14 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fredoka.variable} ${quicksand.variable}`}>
-        <CartProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-        </CartProvider>
-        <Toaster />
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   )
