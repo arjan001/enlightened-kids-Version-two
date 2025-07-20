@@ -54,12 +54,7 @@ export default function Header() {
           >
             Contact
           </Link>
-          <Link
-            href="/admin"
-            className="text-gray-700 hover:text-orange-500 transition-colors font-fredoka font-semibold"
-          >
-            Admin
-          </Link>
+          
         </nav>
 
         <div className="flex items-center gap-4">
