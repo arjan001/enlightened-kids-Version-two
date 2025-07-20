@@ -195,6 +195,10 @@ export default function CheckoutPage() {
       localStorage.removeItem("orderNotes")
       localStorage.removeItem("paymentMethod")
       localStorage.removeItem("selectedDeliveryPriceId")
+
+      // Add a delay before redirecting
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // 2-second delay
+
       router.push("/booklet")
     } else {
       toast({
