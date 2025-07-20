@@ -1,38 +1,14 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import Header from "@/components/header"
+import Footer from "@/components/footer"
 import Link from "next/link"
-import { LinkIcon, PhoneIcon as Whatsapp } from "lucide-react"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useCart } from "@/contexts/cart-context"
-// Header and Footer are now rendered in layout.tsx
+import { LinkIcon, PhoneIcon as Whatsapp } from "lucide-react" // Renamed Link to LinkIcon to avoid conflict with next/link
 
 export default function BookletPage() {
-  const { state } = useCart()
-  const router = useRouter()
-
-  useEffect(() => {
-    // Redirect if cart is empty (implies no recent purchase or direct access without items)
-    // This assumes a successful checkout clears the cart and redirects here.
-    // For persistent access after a purchase, a server-side check (e.g., user's order history)
-    // would be needed, but that would require this page to be a Server Component or an API route.
-    // Given the constraint to fix client-side error and not alter UI/logic,
-    // this client-side cart check is the most direct implementation of "has an item in cart or moves well within the checkout process".
-    if (state.itemCount === 0) {
-      router.replace("/books")
-    }
-  }, [state.itemCount, router])
-
-  // Render nothing or a loading state if redirecting
-  if (state.itemCount === 0) {
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header and Footer are now in layout.tsx */}
+      <Header />
 
       {/* Main Content Section */}
       <main
@@ -65,7 +41,7 @@ export default function BookletPage() {
                 variant="outline"
                 className="bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 py-3 px-6 text-lg rounded-lg shadow-md flex-1 sm:flex-none"
               >
-                <Link href="https://wa.me/+254110012701" target="_blank" rel="noopener noreferrer">
+                <Link href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
                   <Whatsapp className="w-5 h-5 mr-2" />
                   Request Via Whatsapp
                 </Link>
@@ -74,6 +50,8 @@ export default function BookletPage() {
           </CardContent>
         </Card>
       </main>
+
+      <Footer />
     </div>
   )
 }

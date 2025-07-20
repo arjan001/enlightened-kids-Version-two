@@ -1,13 +1,25 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, Roboto_Mono } from "next/font/google" // Import Roboto_Mono
+import { Fredoka, Quicksand } from "next/font/google" // Import Fredoka and Quicksand
 import "./globals.css"
 import { CartProvider } from "@/contexts/cart-context"
-import Header from "@/components/header" // Import Header
-import Footer from "@/components/footer" // Import Footer
+import Header from "@/components/header"
+import Footer from "@/components/footer"
+import { Toaster } from "@/components/ui/sonner"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" }) // Define Inter as a CSS variable
-const robotoMono = Roboto_Mono({ subsets: ["latin"], variable: "--font-roboto-mono" }) // Define Roboto Mono as a CSS variable
+// Configure Fredoka for primary font (semibold)
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"], // Include semibold (600)
+  variable: "--font-fredoka",
+})
+
+// Configure Quicksand for secondary font (medium)
+const quicksand = Quicksand({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"], // Include medium (500)
+  variable: "--font-quicksand",
+})
 
 export const metadata: Metadata = {
   title: "Enlightened Kids Africa",
@@ -22,13 +34,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${robotoMono.variable}`}>
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${fredoka.variable} ${quicksand.variable}`}>
         <CartProvider>
-          <Header /> {/* Render Header here */}
-          {children}
-          <Footer /> {/* Render Footer here */}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-grow mt-20">{children}</main> {/* Added mt-20 for fixed header */}
+            <Footer />
+          </div>
         </CartProvider>
+        <Toaster />
       </body>
     </html>
   )
