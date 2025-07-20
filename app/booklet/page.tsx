@@ -12,7 +12,7 @@ export default function BookletPage() {
 
       {/* Main Content Section */}
       <main
-        className="flex-grow py-12 md:py-20 flex items-center justify-center"
+        className="flex-grow py-12 md:py-20 flex justify-center"
         style={{
           backgroundImage: `url('/Enlightened Kids Pattern BG.png')`,
           backgroundSize: "cover",
