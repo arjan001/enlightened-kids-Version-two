@@ -5,11 +5,16 @@ import { createClient } from "@/lib/supabase/middleware"
  * Global middleware that protects /admin routes.
  */
 export async function middleware(request: NextRequest) {
-  // Create a Next.js response *before* calling Supabase
-  const response = NextResponse.next({ request })
+  // The createClient function in lib/supabase/middleware.ts returns { supabase, response }
+  // We need to capture both the supabase client and the modified response.
+  const { supabase, response } = await createClient(request)
 
-  // Initialise Supabase with request/response cookie helpers
-  const supabase = createClient(request, response)
+  // This check ensures that 'supabase' is defined before attempting to call 'getSession' on it.
+  // If for any reason the client creation fails, it will redirect to login.
+  if (!supabase) {
+    console.error("Supabase client was not initialized in middleware. Redirecting to login.")
+    return NextResponse.redirect(new URL("/admin/login", request.url))
+  }
 
   const {
     data: { session },
