@@ -80,8 +80,8 @@ export async function uploadBooklet(formData: FormData) {
       .from("booklets")
       .update({
         name: file.name,
-        url: publicUrl,
-        file_url: publicUrl,
+        url: publicUrl, // keep existing url field
+        file_url: publicUrl, // satisfy NOT-NULL constraint
         file_name: file.name, // Added file_name
         updated_at: new Date().toISOString(),
       })
@@ -95,8 +95,8 @@ export async function uploadBooklet(formData: FormData) {
     // insert new record
     const { error: insertError } = await supabaseAdmin.from("booklets").insert({
       name: file.name,
-      url: publicUrl,
-      file_url: publicUrl,
+      url: publicUrl, // keep existing url field
+      file_url: publicUrl, // satisfy NOT-NULL constraint
       file_name: file.name, // Added file_name
     })
 
