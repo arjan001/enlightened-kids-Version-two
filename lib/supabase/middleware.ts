@@ -1,9 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export function createClient(request: NextRequest) {
-  // Create an unmodified response. This is important for the initial response
-  // before any cookies are set or removed by Supabase.
+export async function createClient(request: NextRequest) {
+  // Create an unmodified response
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -19,11 +18,8 @@ export function createClient(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the request's cookies and the response's cookies.
-          // This ensures that the updated cookie is available for subsequent checks in the same request
-          // and is also sent back to the client in the response headers.
+          // If the cookie is updated, update the request and response cookie
           request.cookies.set({ name, value, ...options })
-          // Recreate the response to ensure the new cookies are included.
           response = NextResponse.next({
             request: {
               headers: request.headers,
@@ -32,9 +28,8 @@ export function createClient(request: NextRequest) {
           response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, remove it from the request's cookies and the response's cookies.
+          // If the cookie is updated, update the request and response cookie
           request.cookies.set({ name, value: "", ...options })
-          // Recreate the response to ensure the cookie removal is included.
           response = NextResponse.next({
             request: {
               headers: request.headers,

@@ -1,22 +1,10 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Fredoka, Quicksand } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/contexts/cart-context"
 
-// Configure Fredoka for primary font (semibold)
-const fredoka = Fredoka({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"], // Include semibold (600)
-  variable: "--font-fredoka",
-})
-
-// Configure Quicksand for secondary font (medium)
-const quicksand = Quicksand({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"], // Include medium (500)
-  variable: "--font-quicksand",
-})
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Enlightened Kids Africa",
@@ -31,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${fredoka.variable} ${quicksand.variable}`}>
+    <html lang="en">
+      <body className={inter.className}>
         <CartProvider>{children}</CartProvider>
       </body>
     </html>
