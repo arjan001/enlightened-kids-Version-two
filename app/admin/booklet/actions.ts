@@ -20,7 +20,7 @@ export async function getBooklet() {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("booklets")
-    .select("id, name, url, created_at, updated_at")
+    .select("id, name, url, file_name, created_at, updated_at") // Added file_name
     .order("created_at", { ascending: false })
     .limit(1)
     .single()
@@ -78,7 +78,13 @@ export async function uploadBooklet(formData: FormData) {
     // update existing record
     const { error: updateError } = await supabaseAdmin
       .from("booklets")
-      .update({ name: file.name, url: publicUrl, updated_at: new Date().toISOString() })
+      .update({
+        name: file.name,
+        url: publicUrl,
+        file_url: publicUrl,
+        file_name: file.name, // Added file_name
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", currentBookletId)
 
     if (updateError) {
@@ -87,7 +93,12 @@ export async function uploadBooklet(formData: FormData) {
     }
   } else {
     // insert new record
-    const { error: insertError } = await supabaseAdmin.from("booklets").insert({ name: file.name, url: publicUrl })
+    const { error: insertError } = await supabaseAdmin.from("booklets").insert({
+      name: file.name,
+      url: publicUrl,
+      file_url: publicUrl,
+      file_name: file.name, // Added file_name
+    })
 
     if (insertError) {
       console.error("DB Insert Error:", insertError)

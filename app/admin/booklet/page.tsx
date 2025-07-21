@@ -16,6 +16,7 @@ interface Booklet {
   id: string
   name: string
   url: string
+  file_name: string // Added file_name to interface
   created_at: string
   updated_at: string
 }
@@ -101,6 +102,9 @@ export default function BookletUploadPage() {
                 <FileText className="w-6 h-6 text-blue-600" />
                 <div>
                   <p className="font-medium">{currentBooklet.name}</p>
+                  {currentBooklet.file_name && ( // Display file_name if available
+                    <p className="text-sm text-gray-500">File: {currentBooklet.file_name}</p>
+                  )}
                   <p className="text-sm text-gray-500">
                     Uploaded: {new Date(currentBooklet.created_at).toLocaleDateString()}
                   </p>
