@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Fredoka, Quicksand } from "next/font/google" // Import Fredoka and Quicksand
+import { Fredoka, Quicksand } from "next/font/google"
 import "./globals.css"
 import { CartProvider } from "@/contexts/cart-context"
-import { cn } from "@/lib/utils" // Import cn utility
+import { cn } from "@/lib/utils"
 
 // Define Fredoka font with semibold (600) weight and CSS variable
 const fredoka = Fredoka({
@@ -33,9 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn(fredoka.variable, quicksand.variable)}>
-      <body className={cn("font-fredoka", fredoka.className)}>
-        {" "}
-        {/* Apply Fredoka as default body font and its class */}
+      <body className={fredoka.className}>
         <CartProvider>{children}</CartProvider>
       </body>
     </html>

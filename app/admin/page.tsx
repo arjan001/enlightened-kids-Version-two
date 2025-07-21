@@ -11,7 +11,6 @@ import {
   BarChart3,
   Users,
   BookOpen,
-  DollarSign,
   Banknote,
   TrendingUp,
   Eye,
@@ -20,7 +19,6 @@ import {
   Package,
   Settings,
   Bell,
-  Shield,
   Plus,
   Edit,
   Trash2,
@@ -33,16 +31,12 @@ import {
   User,
   ChevronDown,
   UserPlus,
-  Key,
   Menu,
   X,
   MessageSquare,
-  Mail,
-  Phone,
   MapPin,
   Archive,
-  CheckCircle,
-  CalendarDays,
+  FileText,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -62,20 +56,6 @@ import {
   AlertDialogHeader, // Added back for delete confirmation
   AlertDialogTitle, // Added back for delete confirmation
 } from "@/components/ui/alert-dialog"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts"
 import Image from "next/image"
 import { useRouter } from "next/navigation" // Import useRouter
 import {
@@ -100,6 +80,7 @@ import { getContactMessages, updateContactMessageStatus, deleteContactMessage } 
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import type { SupabaseUser, DeliveryPrice as DeliveryPriceType } from "./actions" // Import the SupabaseUser type and new DeliveryPriceType
+import BookletUpload from "@/components/booklet-upload"
 
 // Define a type for your product data
 interface Product {
@@ -818,6 +799,7 @@ export default function AdminDashboard() {
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "users", label: "User Management", icon: UserPlus },
     { id: "contact-messages", label: "Contact Messages", icon: MessageSquare }, // New sidebar item
+    { id: "booklet", label: "Booklet Upload", icon: FileText }, // New sidebar item for booklet upload
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
@@ -1794,13 +1776,9 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <Label htmlFor="phone">Phone</Label>
-                        <Input id="phone" defaultValue="+254 700 123 456" />
+                        <Input id="phone" defaultValue="+254712345678" />
                       </div>
-                      <div>
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea id="bio" defaultValue="Author and founder of Enlightened Kids Africa" rows={3} />
-                      </div>
-                      <Button>Save Changes</Button>
+                      <Button>Update Profile</Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -1813,36 +1791,17 @@ export default function AdminDashboard() {
                     <CardContent className="space-y-4">
                       <div>
                         <Label htmlFor="currentPassword">Current Password</Label>
-                        <Input id="currentPassword" type="password" />
+                        <Input id="currentPassword" type="password" placeholder="Enter current password" />
                       </div>
                       <div>
                         <Label htmlFor="newPassword">New Password</Label>
-                        <Input id="newPassword" type="password" />
+                        <Input id="newPassword" type="password" placeholder="Enter new password" />
                       </div>
                       <div>
                         <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input id="confirmPassword" type="password" />
+                        <Input id="confirmPassword" type="password" placeholder="Confirm new password" />
                       </div>
-                      <Button>Update Password</Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Two-Factor Authentication</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Enable 2FA</p>
-                          <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-                        </div>
-                        <Switch />
-                      </div>
-                      <Button variant="outline">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Setup Authenticator App
-                      </Button>
+                      <Button>Change Password</Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -1854,33 +1813,14 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">New Orders</p>
-                          <p className="text-sm text-gray-500">Get notified when new orders are placed</p>
-                        </div>
-                        <Switch defaultChecked />
+                        <Label htmlFor="emailNotifications">Email Notifications</Label>
+                        <Switch id="emailNotifications" defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Low Stock Alerts</p>
-                          <p className="text-sm text-gray-500">Get notified when products are running low</p>
-                        </div>
-                        <Switch defaultChecked />
+                        <Label htmlFor="pushNotifications">Push Notifications</Label>
+                        <Switch id="pushNotifications" />
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Customer Reviews</p>
-                          <p className="text-sm text-gray-500">Get notified about new customer reviews</p>
-                        </div>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Marketing Updates</p>
-                          <p className="text-sm text-gray-500">Receive updates about marketing campaigns</p>
-                        </div>
-                        <Switch />
-                      </div>
+                      <Button>Update Notifications</Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -1892,349 +1832,36 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
-                        <Label htmlFor="siteName">Site Name</Label>
-                        <Input id="siteName" defaultValue="Enlightened Kids Africa" />
-                      </div>
-                      <div>
-                        <Label htmlFor="siteDescription">Site Description</Label>
-                        <Textarea
-                          id="siteDescription"
-                          defaultValue="Empowering children through culturally rich stories"
-                          rows={3}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="currency">Default Currency</Label>
-                        <Select defaultValue="kes">
+                        <Label htmlFor="language">Language</Label>
+                        <Select>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Select language" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="kes">Kenyan Shilling (KES)</SelectItem>
-                            <SelectItem value="usd">US Dollar (USD)</SelectItem>
-                            <SelectItem value="eur">Euro (EUR)</SelectItem>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="fr">French</SelectItem>
+                            <SelectItem value="es">Spanish</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
                         <Label htmlFor="timezone">Timezone</Label>
-                        <Select defaultValue="eat">
+                        <Select>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Select timezone" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="eat">East Africa Time (EAT)</SelectItem>
-                            <SelectItem value="utc">UTC</SelectItem>
-                            <SelectItem value="est">Eastern Standard Time</SelectItem>
+                            <SelectItem value="UTC">UTC</SelectItem>
+                            <SelectItem value="EST">EST</SelectItem>
+                            <SelectItem value="KST">KST</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button>Save Settings</Button>
+                      <Button>Update General Settings</Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
-            </div>
-          )}
-
-          {activeTab === "analytics" && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Analytics & Reports</h2>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-green-600">
-                        {((totalSales / 100000) * 100).toFixed(0)}%
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-600">Conversion Rate</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-blue-600">4.8</p>
-                      <p className="text-xs sm:text-sm text-gray-600">Avg. Rating</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-purple-600">2.5min</p>
-                      <p className="text-xs sm:text-sm text-gray-600">Avg. Session</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center">
-                      <p className="text-xl sm:text-2xl font-bold text-orange-600">92%</p>
-                      <p className="text-xs sm:text-sm text-gray-600">Customer Satisfaction</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sales Trend</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        sales: {
-                          label: "Sales",
-                          color: "hsl(var(--chart-1))",
-                        },
-                      }}
-                      className="h-[250px] w-full"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlySalesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="sales" fill="var(--color-sales)" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Traffic Sources</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={{
-                        direct: {
-                          label: "Direct",
-                          color: "#8884d8",
-                        },
-                        social: {
-                          label: "Social Media",
-                          color: "#82ca9d",
-                        },
-                        search: {
-                          label: "Search Engines",
-                          color: "#ffc658",
-                        },
-                      }}
-                      className="h-[250px] w-full"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={trafficData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {trafficData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <ChartTooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Revenue Trend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      revenue: {
-                        label: "Revenue",
-                        color: "hsl(var(--chart-3))",
-                      },
-                    }}
-                    className="h-[250px] w-full"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlySalesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Line type="monotone" dataKey="sales" stroke="var(--color-revenue)" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "customers" && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Customer Management</h2>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <CardTitle>All Customers</CardTitle>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input placeholder="Search customers..." className="pl-10 w-full sm:w-64" />
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {loadingCustomers && <p>Loading customers...</p>}
-                  {errorCustomers && <p className="text-red-500">Error: {errorCustomers}</p>}
-                  {!loadingCustomers && !errorCustomers && customers.length === 0 && <p>No customers found.</p>}
-                  {!loadingCustomers && !errorCustomers && customers.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[150px]">Customer</TableHead>
-                            <TableHead className="min-w-[200px]">Email</TableHead>
-                            <TableHead className="min-w-[120px]">Phone</TableHead>
-                            <TableHead className="min-w-[250px]">Address</TableHead>
-                            <TableHead className="min-w-[100px]">City</TableHead>
-                            <TableHead className="min-w-[100px]">Country</TableHead>
-                            <TableHead className="min-w-[100px]">Created At</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {customers.map((customer) => (
-                            <TableRow key={customer.id}>
-                              <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <span className="text-sm font-semibold text-blue-600">
-                                      {getCustomerInitials(customer)}
-                                    </span>
-                                  </div>
-                                  <span className="font-medium">{getCustomerFullName(customer)}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>{customer.customer_email}</TableCell>
-                              <TableCell>{customer.phone_number || "N/A"}</TableCell>
-                              <TableCell>{customer.shipping_address_line1 || "N/A"}</TableCell>
-                              <TableCell>{customer.shipping_city || "N/A"}</TableCell>
-                              <TableCell>{customer.shipping_country || "N/A"}</TableCell>
-                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "orders" && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Order Management</h2>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <CardTitle>All Orders</CardTitle>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-full sm:w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Orders</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input placeholder="Search orders..." className="pl-10 w-full sm:w-64" />
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {loadingOrders && <p>Loading orders...</p>}
-                  {errorOrders && <p className="text-red-500">Error: {errorOrders}</p>}
-                  {!loadingOrders && !errorOrders && orders.length === 0 && <p>No orders found.</p>}
-                  {!loadingOrders && !errorOrders && orders.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[100px]">Order ID</TableHead>
-                            <TableHead className="min-w-[120px]">Customer</TableHead>
-                            <TableHead className="min-w-[150px]">Products</TableHead>
-                            <TableHead className="min-w-[100px]">Total</TableHead>
-                            <TableHead className="min-w-[100px]">Status</TableHead>
-                            <TableHead className="min-w-[100px]">Date</TableHead>
-                            <TableHead className="min-w-[120px]">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {orders.map((order) => (
-                            <TableRow key={order.id}>
-                              <TableCell className="font-medium">{order.id}</TableCell>
-                              <TableCell>{order.customer_name}</TableCell>
-                              <TableCell>
-                                {order.order_items?.map((p) => `${p.title} (x${p.quantity})`).join(", ") || "N/A"}
-                              </TableCell>
-                              <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  className={
-                                    order.status === "completed"
-                                      ? "bg-green-100 text-green-800"
-                                      : order.status === "pending"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : "bg-blue-100 text-blue-800"
-                                  }
-                                >
-                                  {order.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                <div className="flex space-x-2">
-                                  <Button variant="outline" size="sm" onClick={() => handleViewOrder(order)}>
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           )}
 
@@ -2253,435 +1880,110 @@ export default function AdminDashboard() {
                     <DialogHeader>
                       <DialogTitle>Add New User</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <form onSubmit={() => {}} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="userName">Full Name</Label>
-                          <Input id="userName" placeholder="Enter full name" />
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input id="firstName" placeholder="Enter first name" required />
                         </div>
                         <div>
-                          <Label htmlFor="userEmail">Email Address</Label>
-                          <Input id="userEmail" type="email" placeholder="Enter email address" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="userRole">Role</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {roles.map((role) => (
-                                <SelectItem key={role.id} value={role.name.toLowerCase()}>
-                                  {role.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="userStatus">Status</Label>
-                          <Select defaultValue="active">
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="inactive">Inactive</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input id="lastName" placeholder="Enter last name" required />
                         </div>
                       </div>
                       <div>
-                        <Label htmlFor="userPassword">Temporary Password</Label>
-                        <Input id="userPassword" type="password" placeholder="Enter temporary password" />
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="Enter email address" required />
                       </div>
                       <div>
-                        <Label>Permissions</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          {permissions.map((permission) => (
-                            <div key={permission.id} className="flex items-center space-x-2">
-                              <input type="checkbox" id={permission.id} className="rounded border-gray-300" />
-                              <Label htmlFor={permission.id} className="text-sm">
-                                {permission.name}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
+                        <Label htmlFor="role">Role</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="support">Support</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="sendInvite" defaultChecked />
+                        <Label htmlFor="sendInvite">Send invitation email</Label>
                       </div>
                       <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                        <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
                           Cancel
                         </Button>
-                        <Button
-                          onClick={() => {
-                            console.log("Adding new user...")
-                            setIsAddUserOpen(false)
-                          }}
-                        >
-                          Add User
-                        </Button>
+                        <Button type="submit">Create User</Button>
                       </div>
-                    </div>
+                    </form>
                   </DialogContent>
                 </Dialog>
               </div>
 
-              <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="roles">Roles</TabsTrigger>
-                  <TabsTrigger value="permissions">Permissions</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="users" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <CardTitle>All Users</CardTitle>
-                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <Input placeholder="Search users..." className="pl-10 w-full sm:w-64" />
-                          </div>
-                          <Button variant="outline" size="sm">
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filter
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {loadingDbUsers && <p>Loading users...</p>}
-                      {errorDbUsers && <p className="text-red-500">Error: {errorDbUsers}</p>}
-                      {!loadingDbUsers && !errorDbUsers && dbUsers.length === 0 && <p>No users found.</p>}
-                      {!loadingDbUsers && !errorDbUsers && dbUsers.length > 0 && (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[200px]">User</TableHead>
-                                <TableHead className="min-w-[120px]">Role</TableHead>
-                                <TableHead className="min-w-[100px]">Status</TableHead>
-                                <TableHead className="min-w-[150px]">Last Login</TableHead>
-                                <TableHead className="min-w-[120px]">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {dbUsers.map((user) => (
-                                <TableRow key={user.id}>
-                                  <TableCell>
-                                    <div className="flex items-center space-x-3">
-                                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                                        <span className="text-white text-sm font-semibold">
-                                          {user.user_metadata?.full_name
-                                            ? user.user_metadata.full_name
-                                                .split(" ")
-                                                .map((n: string) => n[0])
-                                                .join("")
-                                            : user.email
-                                              ? user.email[0].toUpperCase()
-                                              : "U"}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <p className="font-medium">{user.user_metadata?.full_name || user.email}</p>
-                                        <p className="text-sm text-gray-500">{user.email}</p>
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge className="bg-blue-100 text-blue-800">{user.role || "User"}</Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      className={
-                                        user.last_sign_in_at
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-gray-100 text-gray-800"
-                                      }
-                                    >
-                                      {user.last_sign_in_at ? "Active" : "Inactive"}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-sm">
-                                    {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : "N/A"}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex space-x-2">
-                                      <Button variant="outline" size="sm" onClick={() => handleEdit("user", user)}>
-                                        <Edit className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDelete("user", user.id, user.email || "Unknown User")}
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="roles" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <CardTitle>User Roles</CardTitle>
-                        <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
-                          <DialogTrigger asChild>
-                            <Button>
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Role
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Add New Role</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="roleName">Role Name</Label>
-                                <Input id="roleName" placeholder="Enter role name" />
-                              </div>
-                              <div>
-                                <Label htmlFor="roleDescription">Description</Label>
-                                <Textarea id="roleDescription" placeholder="Enter role description" rows={3} />
-                              </div>
-                              <div>
-                                <Label>Permissions</Label>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                  {permissions.map((permission) => (
-                                    <div key={permission.id} className="flex items-center space-x-2">
-                                      <input
-                                        type="checkbox"
-                                        id={`role-${permission.id}`}
-                                        className="rounded border-gray-300"
-                                      />
-                                      <Label htmlFor={`role-${permission.id}`} className="text-sm">
-                                        {permission.name}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="flex justify-end space-x-2">
-                                <Button variant="outline" onClick={() => setIsAddRoleOpen(false)}>
-                                  Cancel
-                                </Button>
-                                <Button
-                                  onClick={() => {
-                                    console.log("Adding new role...")
-                                    setIsAddRoleOpen(false)
-                                  }}
-                                >
-                                  Add Role
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {roles.map((role) => (
-                          <Card key={role.id} className="border">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-3">
-                                <div>
-                                  <h4 className="font-semibold text-lg">{role.name}</h4>
-                                  <p className="text-sm text-gray-600">{role.description}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Button variant="outline" size="sm" onClick={() => handleEdit("role", role)}>
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDelete("role", role.id.toString(), role.name)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium">Users:</span>
-                                  <Badge variant="secondary">{role.userCount}</Badge>
-                                </div>
-                                <div>
-                                  <span className="text-sm font-medium">Permissions:</span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {role.permissions.slice(0, 3).map((permission) => (
-                                      <Badge key={permission} variant="outline" className="text-xs">
-                                        {permission}
-                                      </Badge>
-                                    ))}
-                                    {role.permissions.length > 3 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{role.permissions.length - 3} more
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="permissions" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>System Permissions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {permissions.map((permission) => (
-                          <Card key={permission.id} className="border">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <Key className="w-5 h-5 text-gray-600" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold">{permission.name}</h4>
-                                    <p className="text-sm text-gray-600">{permission.description}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-
-          {activeTab === "contact-messages" && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Contact Messages</h2>
-
               <Card>
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <CardTitle>All Messages</CardTitle>
+                    <CardTitle>All Users</CardTitle>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                      <Select defaultValue="new">
-                        <SelectTrigger className="w-full sm:w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="read">Read</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
-                          <SelectItem value="all">All</SelectItem>
-                        </SelectContent>
-                      </Select>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input placeholder="Search messages..." className="pl-10 w-full sm:w-64" />
+                        <Input placeholder="Search users..." className="pl-10 w-full sm:w-64" />
                       </div>
+                      <Button variant="outline" size="sm">
+                        <Filter className="w-4 h-4 mr-2" />
+                        Filter
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {loadingContactMessages && <p>Loading contact messages...</p>}
-                  {errorContactMessages && <p className="text-red-500">Error: {errorContactMessages}</p>}
-                  {!loadingContactMessages && !errorContactMessages && contactMessages.length === 0 && (
-                    <p>No contact messages found.</p>
-                  )}
-                  {!loadingContactMessages && !errorContactMessages && contactMessages.length > 0 && (
+                  {loadingDbUsers && <p>Loading users...</p>}
+                  {errorDbUsers && <p className="text-red-500">Error: {errorDbUsers}</p>}
+                  {!loadingDbUsers && !errorDbUsers && dbUsers.length === 0 && <p>No users found.</p>}
+                  {!loadingDbUsers && !errorDbUsers && dbUsers.length > 0 && (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[150px]">Name</TableHead>
-                            <TableHead className="min-w-[200px]">Email</TableHead>
-                            <TableHead className="min-w-[300px]">Message</TableHead>
-                            <TableHead className="min-w-[150px]">Status</TableHead>
-                            <TableHead className="min-w-[150px]">Date</TableHead>
+                            <TableHead className="min-w-[200px]">User</TableHead>
+                            <TableHead className="min-w-[120px]">Email</TableHead>
+                            <TableHead className="min-w-[100px]">Role</TableHead>
+                            <TableHead className="min-w-[100px]">Status</TableHead>
                             <TableHead className="min-w-[120px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {contactMessages.map((message) => (
-                            <TableRow key={message.id}>
-                              <TableCell>{message.name}</TableCell>
-                              <TableCell>{message.email}</TableCell>
-                              <TableCell>{message.message}</TableCell>
+                          {dbUsers.map((user) => (
+                            <TableRow key={user.id}>
                               <TableCell>
-                                <Badge
-                                  className={
-                                    message.status === "new"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : message.status === "read"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
-                                  }
-                                >
-                                  {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
-                                </Badge>
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-semibold">
+                                      {user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{user.user_metadata?.full_name || user.email}</p>
+                                  </div>
+                                </div>
                               </TableCell>
-                              <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>Admin</TableCell>
+                              <TableCell>
+                                <Badge className="bg-green-100 text-green-800">Active</Badge>
+                              </TableCell>
                               <TableCell>
                                 <div className="flex space-x-2">
-                                  <Button variant="outline" size="sm" onClick={() => handleViewContactMessage(message)}>
-                                    <Eye className="w-4 h-4" />
+                                  <Button variant="outline" size="sm" onClick={() => handleEdit("user", user)}>
+                                    <Edit className="w-4 h-4" />
                                   </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open dropdown menu</span>
-                                        <ChevronDown className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      {message.status === "new" && (
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            updateContactMessageStatus(message.id, "read")
-                                            fetchContactMessages()
-                                          }}
-                                        >
-                                          Mark as Read
-                                        </DropdownMenuItem>
-                                      )}
-                                      {message.status !== "archived" && (
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            updateContactMessageStatus(message.id, "archived")
-                                            fetchContactMessages()
-                                          }}
-                                        >
-                                          Archive
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem
-                                        onClick={() => handleDelete("contact-message", message.id, message.name)}
-                                      >
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                  <Button variant="outline" size="sm">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -2694,224 +1996,124 @@ export default function AdminDashboard() {
               </Card>
             </div>
           )}
+
+          {activeTab === "contact-messages" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Contact Messages</h2>
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Messages</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingContactMessages && <p>Loading messages...</p>}
+                  {errorContactMessages && <p className="text-red-500">Error: {errorContactMessages}</p>}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length === 0 && (
+                    <p>No contact messages found.</p>
+                  )}
+                  {!loadingContactMessages && !errorContactMessages && contactMessages.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
+                            <TableHead className="min-w-[200px]">Email</TableHead>
+                            <TableHead className="min-w-[300px]">Message</TableHead>
+                            <TableHead className="min-w-[120px]">Status</TableHead>
+                            <TableHead className="min-w-[150px]">Date</TableHead>
+                            <TableHead className="min-w-[150px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {contactMessages.map((message) => (
+                            <TableRow key={message.id}>
+                              <TableCell className="font-medium">{message.name}</TableCell>
+                              <TableCell>{message.email}</TableCell>
+                              <TableCell className="truncate">{message.message}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    message.status === "new"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : message.status === "read"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                  }
+                                >
+                                  {message.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewContactMessage(message)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDelete("contact-message", message.id, message.name)}
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "booklet" && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Booklet Upload</h2>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Booklet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BookletUpload />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Edit Product Modal */}
+      {/* Edit Product Dialog */}
       <Dialog open={isEditProductOpen} onOpenChange={setIsEditProductOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
-          {editingProduct && (
-            <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editTitle">Book Title</Label>
-                  <Input
-                    id="editTitle"
-                    name="title"
-                    placeholder="Enter book title"
-                    defaultValue={editingProduct.title}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="editAuthor">Author</Label>
-                  <Input
-                    id="editAuthor"
-                    name="author"
-                    placeholder="Enter author name"
-                    defaultValue={editingProduct.author}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editPrice">Price (KES)</Label>
-                  <Input
-                    id="editPrice"
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    defaultValue={editingProduct.price}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="editCategory">Category</Label>
-                  <Select name="category" defaultValue={editingProduct.category}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="children">Children's Books</SelectItem>
-                      <SelectItem value="educational">Educational</SelectItem>
-                      <SelectItem value="cultural">Cultural Stories</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <form onSubmit={handleUpdateProductSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editStock">Stock</Label>
+                <Label htmlFor="editTitle">Book Title</Label>
                 <Input
-                  id="editStock"
-                  name="stock"
-                  type="number"
-                  min="0"
-                  defaultValue={editingProduct.stock ?? 0}
+                  id="editTitle"
+                  name="title"
+                  placeholder="Enter book title"
+                  defaultValue={editingProduct?.title}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editDescription">Description</Label>
-                <Textarea
-                  id="editDescription"
-                  name="description"
-                  defaultValue={editingProduct.description || ""}
-                  placeholder="Enter book description"
-                  rows={4}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editAgeRange">Age Range</Label>
-                  <Input id="editAgeRange" name="ageRange" defaultValue={editingProduct.age_range || ""} />
-                </div>
-                <div>
-                  <Label htmlFor="editPages">Number of Pages</Label>
-                  <Input id="editPages" name="pages" type="number" defaultValue={editingProduct.pages || ""} />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="editImage">Book Cover</Label>
-                {editingProduct.image_url && (
-                  <div className="mb-2">
-                    <Image
-                      src={editingProduct.image_url || "/placeholder.svg"}
-                      alt="Current Book Cover"
-                      width={80}
-                      height={100}
-                      className="rounded object-cover"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Current image</p>
-                  </div>
-                )}
-                <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-                <input type="hidden" name="currentImageUrl" value={editingProduct.image_url || ""} />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update Product</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Blog Modal */}
-      <Dialog open={isEditBlogOpen} onOpenChange={setIsEditBlogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Blog Post</DialogTitle>
-          </DialogHeader>
-          {editingBlog && (
-            <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="editBlogTitle">Post Title</Label>
-                <Input id="editBlogTitle" name="title" defaultValue={editingBlog.title || ""} required />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editBlogAuthor">Author</Label>
-                  <Input id="editBlogAuthor" name="author" defaultValue={editingBlog.author || ""} required />
-                </div>
-                <div>
-                  <Label htmlFor="editBlogCategory">Category</Label>
-                  <Select name="category" defaultValue={editingBlog.category || ""}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parenting">Parenting Tips</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="culture">Cultural Stories</SelectItem>
-                      <SelectItem value="development">Child Development</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="editBlogExcerpt">Excerpt</Label>
-                <Textarea
-                  id="editBlogExcerpt"
-                  name="excerpt"
-                  defaultValue={editingBlog.excerpt || ""}
-                  placeholder="Brief description of the post"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label htmlFor="editBlogContent">Content</Label>
-                <Textarea
-                  id="editBlogContent"
-                  name="content"
-                  defaultValue={editingBlog.content || ""}
-                  placeholder="Write your blog post content here..."
-                  rows={10}
+                <Label htmlFor="editAuthor">Author</Label>
+                <Input
+                  id="editAuthor"
+                  name="author"
+                  placeholder="Enter author name"
+                  defaultValue={editingProduct?.author}
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="editBlogTags">Tags</Label>
-                <Input
-                  id="editBlogTags"
-                  name="tags"
-                  defaultValue={editingBlog.tags?.join(", ") || ""}
-                  placeholder="parenting, children, culture (comma separated)"
-                />
-              </div>
-              <div>
-                <Label htmlFor="editFeaturedImage">Featured Image</Label>
-                <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
-                <input type="hidden" name="currentImageUrl" value={editingBlog.image_url || ""} />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog.is_published} />
-                <Label htmlFor="editPublishNow">Publish immediately</Label>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update Post</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Delivery Price Modal */}
-      <Dialog open={isEditDeliveryPriceOpen} onOpenChange={setIsEditDeliveryPriceOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Delivery Location</DialogTitle>
-          </DialogHeader>
-          {editingDeliveryPrice && (
-            <form onSubmit={handleUpdateDeliveryPriceSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="editLocationName">Location Name</Label>
-                <Input
-                  id="editLocationName"
-                  name="locationName"
-                  placeholder="e.g., Nairobi CBD"
-                  defaultValue={editingDeliveryPrice.location_name}
-                  required
-                />
-              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="editPrice">Price (KES)</Label>
                 <Input
@@ -2919,295 +2121,256 @@ export default function AdminDashboard() {
                   name="price"
                   type="number"
                   step="0.01"
-                  placeholder="300"
-                  defaultValue={editingDeliveryPrice.price}
+                  placeholder="Enter price"
+                  defaultValue={editingProduct?.price}
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditDeliveryPriceOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Update Location</Button>
+              <div>
+                <Label htmlFor="editCategory">Category</Label>
+                <Select name="category" defaultValue={editingProduct?.category}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="children">Children's Books</SelectItem>
+                    <SelectItem value="educational">Educational</SelectItem>
+                    <SelectItem value="cultural">Cultural Stories</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </form>
-          )}
+            </div>
+            <div>
+              <Label htmlFor="editStock">Stock</Label>
+              <Input
+                id="editStock"
+                name="stock"
+                type="number"
+                min="0"
+                placeholder="Enter stock quantity"
+                defaultValue={editingProduct?.stock}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="editDescription">Description</Label>
+              <Textarea
+                id="editDescription"
+                name="description"
+                placeholder="Enter book description"
+                rows={4}
+                defaultValue={editingProduct?.description}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editAgeRange">Age Range</Label>
+                <Input
+                  id="editAgeRange"
+                  name="ageRange"
+                  placeholder="Enter age range"
+                  defaultValue={editingProduct?.age_range}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPages">Number of Pages</Label>
+                <Input
+                  id="editPages"
+                  name="pages"
+                  type="number"
+                  placeholder="Enter number of pages"
+                  defaultValue={editingProduct?.pages}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editImage">Book Cover</Label>
+              <Input id="editImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditProductOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Product</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* View Order Modal */}
-      <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
+      {/* Edit Blog Post Dialog */}
+      <Dialog open={isEditBlogOpen} onOpenChange={setIsEditBlogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Blog Post</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateBlogPostSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="editBlogTitle">Post Title</Label>
+              <Input
+                id="editBlogTitle"
+                name="title"
+                placeholder="Enter post title"
+                defaultValue={editingBlog?.title}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editBlogAuthor">Author</Label>
+                <Input
+                  id="editBlogAuthor"
+                  name="author"
+                  defaultValue={editingBlog?.author || "Cheryl Nyakio"}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editBlogCategory">Category</Label>
+                <Select name="category" defaultValue={editingBlog?.category}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="parenting">Parenting Tips</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="culture">Cultural Stories</SelectItem>
+                    <SelectItem value="development">Child Development</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="editBlogExcerpt">Excerpt</Label>
+              <Textarea
+                id="editBlogExcerpt"
+                name="excerpt"
+                placeholder="Brief description of the post"
+                rows={3}
+                defaultValue={editingBlog?.excerpt}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editBlogContent">Content</Label>
+              <Textarea
+                id="editBlogContent"
+                name="content"
+                placeholder="Write your blog post content here..."
+                rows={10}
+                defaultValue={editingBlog?.content}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="editBlogTags">Tags</Label>
+              <Input
+                id="editBlogTags"
+                name="tags"
+                placeholder="parenting, children, culture (comma separated)"
+                defaultValue={editingBlog?.tags?.join(", ")}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editFeaturedImage">Featured Image</Label>
+              <Input id="editFeaturedImage" name="image" type="file" accept="image/*" className="cursor-pointer" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="editPublishNow" name="isPublished" defaultChecked={editingBlog?.is_published} />
+              <Label htmlFor="editPublishNow">Publish immediately</Label>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditBlogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Post</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Order Dialog */}
+      <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
           {viewingOrder && (
-            <div className="space-y-6">
-              {/* Order Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h3 className="text-xl font-semibold">Order {viewingOrder.id}</h3>
-                  {/* <p className="text-sm text-gray-500">Transaction ID: {viewingOrder.transactionId}</p> */}
-                </div>
-                {/* Status Select */}
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="orderStatus" className="sr-only">
-                    Order Status
-                  </Label>
-                  <Select
-                    value={selectedOrderStatus}
-                    onValueChange={(value: Order["status"]) => setSelectedOrderStatus(value)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold">Order Information</h3>
+                <p>Order ID: {viewingOrder.id}</p>
+                <p>Order Date: {new Date(viewingOrder.order_date).toLocaleDateString()}</p>
+                <p>Total Amount: {formatPrice(viewingOrder.total_amount)}</p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Customer Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Customer Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{viewingOrder.customer_name}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.customer_email}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">{viewingOrder.phone_number}</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <span className="text-sm">
-                        {viewingOrder.shipping_address_line1}, {viewingOrder.shipping_city},{" "}
-                        {viewingOrder.shipping_country}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Order Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Order Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <CalendarDays className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">
-                        {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
-                        {new Date(viewingOrder.order_date).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm">M-Pesa</span> {/* Assuming M-Pesa for now */}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="w-4 h-4 text-gray-500" />
-                      <span className="font-semibold">{formatPrice(viewingOrder.total_amount)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div>
+                <h3 className="text-lg font-semibold">Customer Information</h3>
+                <p>Name: {viewingOrder.customer_name}</p>
+                <p>Email: {viewingOrder.customer_email}</p>
+                <p>Phone: {viewingOrder.phone_number || "N/A"}</p>
+                <p>
+                  Address: {viewingOrder.shipping_address_line1}, {viewingOrder.shipping_city},{" "}
+                  {viewingOrder.shipping_country}
+                </p>
               </div>
-
-              {/* Product Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Product Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {viewingOrder.order_items && viewingOrder.order_items.length > 0 ? (
-                    viewingOrder.order_items.map((product, index) => {
-                      // Find the full product details from the 'products' state
-                      const productDetails = products.find((p) => p.id === product.product_id)
-                      // Use the actual image_url if available, otherwise fallback to a placeholder
-                      const imageUrl = productDetails?.image_url || "/placeholder.svg?height=100&width=80"
-                      return (
-                        <div
-                          key={product.product_id || index}
-                          className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 last:mb-0"
-                        >
-                          <Image
-                            src={imageUrl || "/placeholder.svg"} // Corrected: Use the 'imageUrl' variable here
-                            alt={product.title}
-                            width={80}
-                            height={100}
-                            className="rounded-lg object-cover mx-auto sm:mx-0"
-                          />
-                          <div className="flex-1 text-center sm:text-left">
-                            <h4 className="font-semibold text-lg">{product.title}</h4>
-                            <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
-                            <p className="text-lg font-bold text-green-600 mt-2">
-                              {formatPrice(product.price * product.quantity)}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <p className="text-gray-500">No product details available for this order.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Order Timeline */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Order Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <div>
-                        <p className="font-medium">Order Placed</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(viewingOrder.order_date).toLocaleDateString()} at{" "}
-                          {new Date(viewingOrder.order_date).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    {viewingOrder.status !== "pending" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Payment Confirmed</p>
-                          <p className="text-sm text-gray-500">Payment via M-Pesa</p>
-                        </div>
-                      </div>
-                    )}
-                    {viewingOrder.status === "shipped" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Order Shipped</p>
-                          <p className="text-sm text-gray-500">Package is on the way</p>
-                        </div>
-                      </div>
-                    )}
-                    {viewingOrder.status === "completed" && (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Order Delivered</p>
-                          <p className="text-sm text-gray-500">Successfully delivered to customer</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
+              <div>
+                <h3 className="text-lg font-semibold">Order Items</h3>
+                <ul>
+                  {viewingOrder.order_items?.map((item) => (
+                    <li key={item.product_id}>
+                      {item.title} (x{item.quantity}) - {formatPrice(item.price * item.quantity)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <Label htmlFor="orderStatus">Update Status</Label>
+                <Select
+                  value={selectedOrderStatus}
+                  onValueChange={(value) => setSelectedOrderStatus(value as Order["status"])}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
-                  Close
+                <Button type="button" variant="outline" onClick={() => setIsViewOrderOpen(false)}>
+                  Cancel
                 </Button>
-                <Button onClick={handleUpdateOrderStatus}>Update Status</Button>
+                <Button type="button" onClick={handleUpdateOrderStatus}>
+                  Update Order Status
+                </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Alert */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAction} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* View Contact Message Dialog */}
       <Dialog open={isViewContactMessageOpen} onOpenChange={setIsViewContactMessageOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Contact Message Details</DialogTitle>
           </DialogHeader>
           {viewingContactMessage && (
             <div className="space-y-4">
               <div>
-                <Label className="text-sm font-medium">From:</Label>
-                <p className="text-base">{viewingContactMessage.name}</p>
+                <h3 className="text-lg font-semibold">Message Information</h3>
+                <p>Name: {viewingContactMessage.name}</p>
+                <p>Email: {viewingContactMessage.email}</p>
+                <p>Date: {new Date(viewingContactMessage.created_at).toLocaleDateString()}</p>
               </div>
               <div>
-                <Label className="text-sm font-medium">Email:</Label>
-                <p className="text-base">{viewingContactMessage.email}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Date:</Label>
-                <p className="text-base">{new Date(viewingContactMessage.created_at).toLocaleString()}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Status:</Label>
-                <Badge
-                  className={
-                    viewingContactMessage.status === "new"
-                      ? "bg-blue-100 text-blue-800"
-                      : viewingContactMessage.status === "read"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                  }
-                >
-                  {viewingContactMessage.status.charAt(0).toUpperCase() + viewingContactMessage.status.slice(1)}
-                </Badge>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Message:</Label>
-                <p className="text-base whitespace-pre-wrap">{viewingContactMessage.message}</p>
+                <h3 className="text-lg font-semibold">Message Content</h3>
+                <p>{viewingContactMessage.message}</p>
               </div>
               <div className="flex justify-end space-x-2">
-                {viewingContactMessage.status !== "archived" && (
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      await updateContactMessageStatus(viewingContactMessage.id, "archived")
-                      fetchContactMessages()
-                      setIsViewContactMessageOpen(false)
-                    }}
-                  >
-                    <Archive className="w-4 h-4 mr-2" /> Archive
-                  </Button>
-                )}
-                {viewingContactMessage.status !== "read" && (
-                  <Button
-                    onClick={async () => {
-                      await updateContactMessageStatus(viewingContactMessage.id, "read")
-                      fetchContactMessages()
-                      setIsViewContactMessageOpen(false)
-                    }}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Read
-                  </Button>
-                )}
-                <Button variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsViewContactMessageOpen(false)}>
                   Close
                 </Button>
               </div>
@@ -3215,6 +2378,83 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add Delivery Price Dialog */}
+      <Dialog open={isAddDeliveryPriceOpen} onOpenChange={setIsAddDeliveryPriceOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Delivery Location</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddDeliveryPriceSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="locationName">Location Name</Label>
+              <Input id="locationName" name="locationName" placeholder="e.g., Nairobi CBD" required />
+            </div>
+            <div>
+              <Label htmlFor="price">Price (KES)</Label>
+              <Input id="price" name="price" type="number" step="0.01" placeholder="300" required />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsAddDeliveryPriceOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Location</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Delivery Price Dialog */}
+      <Dialog open={isEditDeliveryPriceOpen} onOpenChange={setIsEditDeliveryPriceOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Delivery Location</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateDeliveryPriceSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="editLocationName">Location Name</Label>
+              <Input
+                id="editLocationName"
+                name="locationName"
+                placeholder="e.g., Nairobi CBD"
+                defaultValue={editingDeliveryPrice?.location_name}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="editPrice">Price (KES)</Label>
+              <Input
+                id="editPrice"
+                name="price"
+                type="number"
+                step="0.01"
+                placeholder="300"
+                defaultValue={editingDeliveryPrice?.price}
+                required
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditDeliveryPriceOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Location</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAction}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
