@@ -478,7 +478,7 @@ export default function BooksPage() {
                   <h4 className="font-semibold text-orange-800 mb-2">Need Help?</h4>
                   <p className="text-gray-600">
                     For delivery or return questions, contact our customer service at{" "}
-                    <strong>support@enlightenedkidsafrica.com</strong> or call <strong>+254 700 123 456</strong>.
+                    <strong>support@enlightenedkidsafrica.co.ke</strong> or call <strong>+254110012701</strong>.
                   </p>
                 </div>
               </div>

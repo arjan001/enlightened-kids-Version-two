@@ -75,7 +75,7 @@ export default function BlogManagementPage() {
         } else {
           toast({
             title: "Error",
-            description: result.error || "Failed to add blog post.",
+            description: result.message || "Failed to add blog post.", // Use result.message
             variant: "destructive",
           })
         }
@@ -109,7 +109,7 @@ export default function BlogManagementPage() {
         } else {
           toast({
             title: "Error",
-            description: result.error || "Failed to update blog post.",
+            description: result.message || "Failed to update blog post.", // Use result.message
             variant: "destructive",
           })
         }
@@ -138,7 +138,7 @@ export default function BlogManagementPage() {
         } else {
           toast({
             title: "Error",
-            description: result.error || "Failed to delete blog post.",
+            description: result.message || "Failed to delete blog post.", // Use result.message
             variant: "destructive",
           })
         }
@@ -173,10 +173,13 @@ export default function BlogManagementPage() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent
+              className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+              aria-describedby="blog-dialog-description"
+            >
               <DialogHeader>
                 <DialogTitle>{currentPost ? "Edit Blog Post" : "Add New Blog Post"}</DialogTitle>
-                <DialogDescription>
+                <DialogDescription id="blog-dialog-description">
                   {currentPost ? "Edit the details of the blog post." : "Fill in the details for a new blog post."}
                 </DialogDescription>
               </DialogHeader>
@@ -217,6 +220,31 @@ export default function BlogManagementPage() {
                     name="content"
                     defaultValue={currentPost?.content || ""}
                     className="col-span-3 min-h-[150px]"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Category
+                  </Label>
+                  <Input
+                    id="category"
+                    name="category"
+                    defaultValue={currentPost?.category || ""}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="readTime" className="text-right">
+                    Read Time (minutes)
+                  </Label>
+                  <Input
+                    id="readTime"
+                    name="readTime"
+                    type="number"
+                    defaultValue={currentPost?.read_time || 0}
+                    className="col-span-3"
                     required
                   />
                 </div>

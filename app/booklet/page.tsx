@@ -54,7 +54,7 @@ export default async function BookletPage() {
                 variant="outline"
                 className="bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 py-3 px-6 text-lg rounded-lg shadow-md flex-1 sm:flex-none"
               >
-                <Link href="https://wa.me/yourwhatsappnumber" target="_blank" rel="noopener noreferrer">
+                <Link href="https://wa.me/+254110012701" target="_blank" rel="noopener noreferrer">
                   <Whatsapp className="w-5 h-5 mr-2" />
                   Request Via Whatsapp
                 </Link>
