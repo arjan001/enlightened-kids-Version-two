@@ -148,12 +148,14 @@ export default function CheckoutPage() {
     return subtotal + shippingCost
   }, [subtotal, shippingCost])
 
-  const handleQuantityChange = (id: string, delta: number) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity: delta } })
+  // Corrected: Pass the new absolute quantity, not a delta
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity: newQuantity } })
   }
 
+  // Corrected: Use the correct action type "REMOVE_ITEM"
   const handleRemoveItem = (id: string) => {
-    dispatch({ type: "REMOVE_FROM_CART", payload: id })
+    dispatch({ type: "REMOVE_ITEM", payload: id })
   }
 
   const handleFinalizeOrder = async () => {
@@ -280,18 +282,29 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
+                          type="button" // Added type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => handleQuantityChange(item.id, -1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)} // Pass new absolute quantity
                           disabled={item.quantity <= 1}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
                         <span>{item.quantity}</span>
-                        <Button variant="outline" size="icon" onClick={() => handleQuantityChange(item.id, 1)}>
+                        <Button
+                          type="button" // Added type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)} // Pass new absolute quantity
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}>
+                        <Button
+                          type="button" // Added type="button" for consistency
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem(item.id)}
+                        >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
