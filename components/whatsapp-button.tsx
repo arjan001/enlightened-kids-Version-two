@@ -5,7 +5,7 @@ import { MessageSquare } from "lucide-react" // Using MessageSquare from lucide-
 
 export default function WhatsappButton() {
   // You can replace this with your actual WhatsApp number and default message
-  const whatsappNumber = "+254 11 0012701," // Example: Kenyan mobile number
+  const whatsappNumber = "+254110012701," // Example: Kenyan mobile number
   const message = "Hello, I'm interested in Enlightened Kids Africa!"
 
   return (
