@@ -46,6 +46,11 @@ export default function Footer() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link href="/support" className="hover:underline">
+                  Support
+                </Link>
+              </li>
             </ul>
           </div>
 
